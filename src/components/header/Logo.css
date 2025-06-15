@@ -1,0 +1,7 @@
+.logo {
+  height: 80px;
+  width: 100px;
+  border: 2px solid black;
+  border-radius: 2px;
+  flex-shrink: 0;
+}

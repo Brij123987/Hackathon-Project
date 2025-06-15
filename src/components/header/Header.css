@@ -1,0 +1,27 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 2px solid red;
+  padding: 10px;
+  position: relative;
+}
+
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 40px;
+  height: 30px;
+  cursor: pointer;
+}
+
+.bar {
+  height: 8px;
+  background-color: black;
+  border-radius: 20px;
+}
+
+.right {
+  position: relative;
+}
