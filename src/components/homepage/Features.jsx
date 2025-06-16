@@ -1,4 +1,20 @@
+import { useNavigate } from "react-router-dom";
+
 function Features () {
+
+    const navigate = useNavigate();
+
+    const handleTrackDisasters = () => {
+        // This could trigger geolocation + call API + navigate
+        console.log("Tracking disasters using current location...");
+        // navigate('/tracking'); // Optional: route to a tracking page
+      };
+
+    const handleGraphView = () => {
+        navigate('/graphs');
+    }
+
+
     return (
         <section id="features" className="py-16 px-6 md:px-20 bg-white">
         <h2 className="text-3xl font-bold mb-10 text-center">Core Features</h2>
@@ -33,6 +49,7 @@ function Features () {
                 📊 By clicking the button, you will be redirected to a graph showing disaster data based on your current location.
             </p>
             <button
+            onClick={handleGraphView}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition"
             >
                 Graph View
