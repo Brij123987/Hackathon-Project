@@ -3,6 +3,7 @@ import Header from './components/header/Header';
 import Logo from './components/header/Logo';
 import DropDownPanel from './components/header/DropDownPanel';
 import Footer from './components/footer/Footer';
+import Home from './components/homepage/Home';
 import './App.css'; // Ensure global styles applied here
 
 function App() {
@@ -14,7 +15,7 @@ function App() {
       </Header>
 
       <div className="content">
-        <h1>Main page content</h1>
+        <Home></Home>
       </div>
 
       <Footer />
