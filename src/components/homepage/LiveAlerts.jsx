@@ -6,7 +6,16 @@ function LiveAlerts () {
                 <p className="text-lg font-semibold text-red-600">🚨 Cyclone Warning near Bay of Bengal</p>
                 <p className="text-sm text-gray-600 mt-2">Wind speed: 120 km/h | Pressure: 980 hPa | Updated: 5 mins ago</p>
             </div>
+            <br></br>
+            <div className="bg-white p-6 rounded-xl shadow-md text-center">
+                <p className="text-lg font-semibold text-red-600">🚨 EarthQuake Warning near Bay of Bengal</p>
+                <p className="text-sm text-gray-600 mt-2">Predicted Magnitude: 4.6 | Expected In Hours: 12.9 | EarthQuake Prediction: Medium</p>
+            </div>
         </section>
+
+       
+            
+     
     );
 }
 
