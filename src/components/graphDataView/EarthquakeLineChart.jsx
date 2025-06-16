@@ -14,6 +14,7 @@ import "chartjs-adapter-date-fns";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, TimeScale);
 
+
 const EarthquakeLineChart = ({ location }) => {
   const [chartData, setChartData] = useState(null);
   const [tableData, setTableData] = useState([]);
@@ -30,6 +31,7 @@ const EarthquakeLineChart = ({ location }) => {
         const labels = reversed.map(item => item.DateTime);
         const magnitudes = reversed.map(item => item.Magnitude);
 
+       
         setChartData({
           labels,
           datasets: [
