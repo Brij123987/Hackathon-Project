@@ -84,6 +84,12 @@ const CycloneLineChart = ({ location }) => {
   const startIndex = (currentPage - 1) * rowsPerPage;
   const currentData = tableData.slice(startIndex, startIndex + rowsPerPage);
 
+  // Format date for mobile display (shorter format)
+  const formatDateForMobile = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  };
+
   const exportToCSV = () => {
     const headers = ["Date", "Latitude", "Longitude", "Wind Pressure", "Wind Speed"];
     const rows = tableData.map(item => [
@@ -165,61 +171,89 @@ const CycloneLineChart = ({ location }) => {
       </div>
       
       {/* Export Buttons */}
-      <div className="flex justify-end gap-4 my-4 px-2 sm:px-4">
+      <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4 my-4 px-2 sm:px-4">
         <button
           onClick={exportToCSV}
-          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
         >
           Export CSV
         </button>
         <button
           onClick={exportToPDF}
-          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
         >
           Export PDF
         </button>
       </div>
       
-      {/* Table */}
+      {/* Responsive Table - Always Table Format */}
       <div className="w-full px-2 sm:px-4">
-        <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-300 text-sm text-left">
-            <thead className="bg-blue-100 text-xs font-semibold uppercase">
+        <div className="w-full overflow-x-auto">
+          <table className="min-w-full border border-gray-300 text-xs sm:text-sm text-left">
+            <thead className="bg-blue-100 font-semibold uppercase">
               <tr>
-                <th className="px-4 py-2 border">Date</th>
-                <th className="px-4 py-2 border">Latitude</th>
-                <th className="px-4 py-2 border">Longitude</th>
-                <th className="px-4 py-2 border">Wind Pressure</th>
-                <th className="px-4 py-2 border">Wind Speed</th>
+                {/* Mobile: Show abbreviated headers */}
+                <th className="px-1 sm:px-4 py-2 sm:py-3 border text-left">
+                  <span className="block sm:hidden">Date</span>
+                  <span className="hidden sm:block">Date</span>
+                </th>
+                <th className="px-1 sm:px-4 py-2 sm:py-3 border text-left">
+                  <span className="block sm:hidden">Lat</span>
+                  <span className="hidden sm:block">Latitude</span>
+                </th>
+                <th className="px-1 sm:px-4 py-2 sm:py-3 border text-left">
+                  <span className="block sm:hidden">Lng</span>
+                  <span className="hidden sm:block">Longitude</span>
+                </th>
+                <th className="px-1 sm:px-4 py-2 sm:py-3 border text-left">
+                  <span className="block sm:hidden">Pressure</span>
+                  <span className="hidden sm:block">Wind Pressure</span>
+                </th>
+                <th className="px-1 sm:px-4 py-2 sm:py-3 border text-left">
+                  <span className="block sm:hidden">Speed</span>
+                  <span className="hidden sm:block">Wind Speed</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {currentData.map((item, index) => (
                 <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 border">{item.Date}</td>
-                  <td className="px-4 py-2 border">{item.Latitude}</td>
-                  <td className="px-4 py-2 border">{item.Longitude}</td>
-                  <td className="px-4 py-2 border font-semibold">{item.windPressure}</td>
-                  <td className="px-4 py-2 border font-semibold">{item.windSpeed}</td>
+                  <td className="px-1 sm:px-4 py-2 sm:py-3 border text-xs sm:text-sm">
+                    <span className="block sm:hidden">{formatDateForMobile(item.Date)}</span>
+                    <span className="hidden sm:block">{item.Date}</span>
+                  </td>
+                  <td className="px-1 sm:px-4 py-2 sm:py-3 border text-xs sm:text-sm">
+                    {parseFloat(item.Latitude).toFixed(2)}
+                  </td>
+                  <td className="px-1 sm:px-4 py-2 sm:py-3 border text-xs sm:text-sm">
+                    {parseFloat(item.Longitude).toFixed(2)}
+                  </td>
+                  <td className="px-1 sm:px-4 py-2 sm:py-3 border font-semibold text-blue-600 text-xs sm:text-sm">
+                    {item.windPressure}
+                  </td>
+                  <td className="px-1 sm:px-4 py-2 sm:py-3 border font-semibold text-green-600 text-xs sm:text-sm">
+                    {item.windSpeed}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          <div className="flex justify-center items-center mt-4 gap-2">
+          {/* Pagination */}
+          <div className="flex justify-center items-center mt-6 gap-2">
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+              className="px-3 py-2 bg-gray-200 rounded disabled:opacity-50 text-sm"
               disabled={currentPage === 1}
             >
               Previous
             </button>
-            <span className="px-3 py-1">
+            <span className="px-3 py-2 text-sm">
               {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+              className="px-3 py-2 bg-gray-200 rounded disabled:opacity-50 text-sm"
               disabled={currentPage === totalPages}
             >
               Next
