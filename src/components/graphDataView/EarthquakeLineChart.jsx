@@ -98,6 +98,12 @@ const EarthquakeLineChart = ({ location }) => {
   const startIndex = (currentPage - 1) * rowsPerPage;
   const currentData = tableData.slice(startIndex, startIndex + rowsPerPage);
 
+  // Format date for mobile display (shorter format)
+  const formatDateForMobile = (dateTime) => {
+    const date = new Date(dateTime);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  };
+
   return (
     <div>
       <div className="w-full max-w-full px-0 mx-auto overflow-x-hidden">
@@ -142,64 +148,57 @@ const EarthquakeLineChart = ({ location }) => {
         </button>
       </div>
 
-      {/* Mobile-First Responsive Table */}
+      {/* Responsive Table - Always Table Format */}
       <div className="w-full px-2 sm:px-4">
-        {/* Mobile Card View (visible on small screens) */}
-        <div className="block sm:hidden">
-          {currentData.map((item, index) => (
-            <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 mb-4 shadow-sm">
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <span className="font-semibold text-gray-600">Date & Time:</span>
-                  <p className="text-gray-800 break-words">{item.DateTime}</p>
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-600">Magnitude:</span>
-                  <p className="text-red-600 font-bold text-lg">{item.Magnitude}</p>
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-600">Latitude:</span>
-                  <p className="text-gray-800">{item.Latitude}</p>
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-600">Longitude:</span>
-                  <p className="text-gray-800">{item.Longitude}</p>
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-600">Depth:</span>
-                  <p className="text-gray-800">{item.Depth}</p>
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-600">AfterShock Risk:</span>
-                  <p className="text-gray-800">{item.AfterShock_Risk}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Desktop Table View (hidden on small screens) */}
-        <div className="hidden sm:block overflow-x-auto">
-          <table className="min-w-full text-sm border border-gray-300">    
+        <div className="w-full overflow-x-auto">
+          <table className="min-w-full text-xs sm:text-sm border border-gray-300">    
             <thead className="bg-blue-100 font-semibold uppercase">
               <tr>
-                <th className="px-4 py-3 border text-left">Date & Time</th>
-                <th className="px-4 py-3 border text-left">Latitude</th>
-                <th className="px-4 py-3 border text-left">Longitude</th>
-                <th className="px-4 py-3 border text-left">Magnitude</th>
-                <th className="px-4 py-3 border text-left">Depth</th>
-                <th className="px-4 py-3 border text-left">AfterShock Risk</th>
+                {/* Mobile: Show abbreviated headers */}
+                <th className="px-1 sm:px-4 py-2 sm:py-3 border text-left">
+                  <span className="block sm:hidden">Date</span>
+                  <span className="hidden sm:block">Date & Time</span>
+                </th>
+                <th className="px-1 sm:px-4 py-2 sm:py-3 border text-left">
+                  <span className="block sm:hidden">Lat</span>
+                  <span className="hidden sm:block">Latitude</span>
+                </th>
+                <th className="px-1 sm:px-4 py-2 sm:py-3 border text-left">
+                  <span className="block sm:hidden">Lng</span>
+                  <span className="hidden sm:block">Longitude</span>
+                </th>
+                <th className="px-1 sm:px-4 py-2 sm:py-3 border text-left">
+                  <span className="block sm:hidden">Mag</span>
+                  <span className="hidden sm:block">Magnitude</span>
+                </th>
+                <th className="px-1 sm:px-4 py-2 sm:py-3 border text-left">Depth</th>
+                <th className="px-1 sm:px-4 py-2 sm:py-3 border text-left">
+                  <span className="block sm:hidden">Risk</span>
+                  <span className="hidden sm:block">AfterShock Risk</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {currentData.map((item, index) => (
                 <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 border">{item.DateTime}</td>
-                  <td className="px-4 py-3 border">{item.Latitude}</td>
-                  <td className="px-4 py-3 border">{item.Longitude}</td>
-                  <td className="px-4 py-3 border font-semibold text-red-600">{item.Magnitude}</td>
-                  <td className="px-4 py-3 border">{item.Depth}</td>
-                  <td className="px-4 py-3 border">{item.AfterShock_Risk}</td>
+                  <td className="px-1 sm:px-4 py-2 sm:py-3 border text-xs sm:text-sm">
+                    <span className="block sm:hidden">{formatDateForMobile(item.DateTime)}</span>
+                    <span className="hidden sm:block">{item.DateTime}</span>
+                  </td>
+                  <td className="px-1 sm:px-4 py-2 sm:py-3 border text-xs sm:text-sm">
+                    {parseFloat(item.Latitude).toFixed(2)}
+                  </td>
+                  <td className="px-1 sm:px-4 py-2 sm:py-3 border text-xs sm:text-sm">
+                    {parseFloat(item.Longitude).toFixed(2)}
+                  </td>
+                  <td className="px-1 sm:px-4 py-2 sm:py-3 border font-semibold text-red-600 text-xs sm:text-sm">
+                    {item.Magnitude}
+                  </td>
+                  <td className="px-1 sm:px-4 py-2 sm:py-3 border text-xs sm:text-sm">{item.Depth}</td>
+                  <td className="px-1 sm:px-4 py-2 sm:py-3 border text-xs sm:text-sm">
+                    <span className="block sm:hidden">{item.AfterShock_Risk.substring(0, 3)}</span>
+                    <span className="hidden sm:block">{item.AfterShock_Risk}</span>
+                  </td>
                 </tr>
               ))}
             </tbody>
