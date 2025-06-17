@@ -133,33 +133,39 @@ const CycloneLineChart = ({ location }) => {
 
   return (
     <div>
-      <Line
-        data={chartData}
-        options={{
-          responsive: true,
-          plugins: {
-            legend: { position: "top" },
-          },
-          scales: {
-            x: {
-              type: "time",
-              time: { unit: "day", tooltipFormat: "PPP" },
-              title: { display: true, text: "Date" },
-            },
-            y1: {
-              position: "left",
-              title: { display: true, text: "Wind Speed (km/h)" },
-            },
-            y2: {
-              position: "right",
-              title: { display: true, text: "Wind Pressure (hPa)" },
-              grid: { drawOnChartArea: false },
-            },
-          },
-        }}
-      />
-
-      <div className="flex justify-end gap-4 my-4">
+      <div className="w-full px-2">
+        <div className="w-full h-[600px]">
+          <Line
+            data={chartData}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: "top" },
+              },
+              scales: {
+                x: {
+                  type: "time",
+                  time: { unit: "day", tooltipFormat: "PPP" },
+                  title: { display: true, text: "Date" },
+                },
+                y1: {
+                  position: "left",
+                  title: { display: true, text: "Wind Speed (km/h)" },
+                },
+                y2: {
+                  position: "right",
+                  title: { display: true, text: "Wind Pressure (hPa)" },
+                  grid: { drawOnChartArea: false },
+                },
+              },
+            }}
+          />
+        </div>
+      </div>
+      
+      {/* Export Buttons */}
+      <div className="flex justify-end gap-4 my-4 px-2 sm:px-4">
         <button
           onClick={exportToCSV}
           className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
@@ -173,49 +179,52 @@ const CycloneLineChart = ({ location }) => {
           Export PDF
         </button>
       </div>
-
-      <div className="overflow-x-auto w-full">
-        <table className="min-w-full border border-gray-300 text-sm text-left">
-          <thead className="bg-blue-100 text-xs font-semibold uppercase">
-            <tr>
-              <th className="px-4 py-2 border">Date</th>
-              <th className="px-4 py-2 border">Latitude</th>
-              <th className="px-4 py-2 border">Longitude</th>
-              <th className="px-4 py-2 border">Wind Pressure</th>
-              <th className="px-4 py-2 border">Wind Speed</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentData.map((item, index) => (
-              <tr key={index} className="hover:bg-gray-50">
-                <td className="px-4 py-2 border">{item.Date}</td>
-                <td className="px-4 py-2 border">{item.Latitude}</td>
-                <td className="px-4 py-2 border">{item.Longitude}</td>
-                <td className="px-4 py-2 border font-semibold">{item.windPressure}</td>
-                <td className="px-4 py-2 border font-semibold">{item.windSpeed}</td>
+      
+      {/* Table */}
+      <div className="w-full px-2 sm:px-4">
+        <div className="overflow-x-auto">
+          <table className="min-w-full border border-gray-300 text-sm text-left">
+            <thead className="bg-blue-100 text-xs font-semibold uppercase">
+              <tr>
+                <th className="px-4 py-2 border">Date</th>
+                <th className="px-4 py-2 border">Latitude</th>
+                <th className="px-4 py-2 border">Longitude</th>
+                <th className="px-4 py-2 border">Wind Pressure</th>
+                <th className="px-4 py-2 border">Wind Speed</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {currentData.map((item, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="px-4 py-2 border">{item.Date}</td>
+                  <td className="px-4 py-2 border">{item.Latitude}</td>
+                  <td className="px-4 py-2 border">{item.Longitude}</td>
+                  <td className="px-4 py-2 border font-semibold">{item.windPressure}</td>
+                  <td className="px-4 py-2 border font-semibold">{item.windSpeed}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-        <div className="flex justify-center items-center mt-4 gap-2">
-          <button
-            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-            disabled={currentPage === 1}
-          >
-            Previous
-          </button>
-          <span className="px-3 py-1">
-            {currentPage} / {totalPages}
-          </span>
-          <button
-            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </button>
+          <div className="flex justify-center items-center mt-4 gap-2">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            <span className="px-3 py-1">
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>
