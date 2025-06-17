@@ -133,67 +133,101 @@ const EarthquakeLineChart = ({ location }) => {
       </div>
 
       {/* Export Buttons */}
-      <div className="flex justify-end gap-4 my-4 px-2 sm:px-4">
-        <button onClick={exportToCSV} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+      <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4 my-4 px-2 sm:px-4">
+        <button onClick={exportToCSV} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm">
           Export CSV
         </button>
-        <button onClick={exportToPDF} className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+        <button onClick={exportToPDF} className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm">
           Export PDF
         </button>
       </div>
 
-      {/* Table */}
-      <div className="w-full max-w-full">
-        <div className="w-full overflow-x-auto px-2"> 
-          <table className="w-full text-xs sm:text-sm border border-gray-300">    
+      {/* Mobile-First Responsive Table */}
+      <div className="w-full px-2 sm:px-4">
+        {/* Mobile Card View (visible on small screens) */}
+        <div className="block sm:hidden">
+          {currentData.map((item, index) => (
+            <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 mb-4 shadow-sm">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="font-semibold text-gray-600">Date & Time:</span>
+                  <p className="text-gray-800 break-words">{item.DateTime}</p>
+                </div>
+                <div>
+                  <span className="font-semibold text-gray-600">Magnitude:</span>
+                  <p className="text-red-600 font-bold text-lg">{item.Magnitude}</p>
+                </div>
+                <div>
+                  <span className="font-semibold text-gray-600">Latitude:</span>
+                  <p className="text-gray-800">{item.Latitude}</p>
+                </div>
+                <div>
+                  <span className="font-semibold text-gray-600">Longitude:</span>
+                  <p className="text-gray-800">{item.Longitude}</p>
+                </div>
+                <div>
+                  <span className="font-semibold text-gray-600">Depth:</span>
+                  <p className="text-gray-800">{item.Depth}</p>
+                </div>
+                <div>
+                  <span className="font-semibold text-gray-600">AfterShock Risk:</span>
+                  <p className="text-gray-800">{item.AfterShock_Risk}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table View (hidden on small screens) */}
+        <div className="hidden sm:block overflow-x-auto">
+          <table className="min-w-full text-sm border border-gray-300">    
             <thead className="bg-blue-100 font-semibold uppercase">
               <tr>
-                <th className="px-2 py-2 border whitespace-nowrap">Date & Time</th>
-                <th className="px-2 py-2 border whitespace-nowrap">Latitude</th>
-                <th className="px-2 py-2 border whitespace-nowrap">Longitude</th>
-                <th className="px-2 py-2 border whitespace-nowrap">Magnitude</th>
-                <th className="px-2 py-2 border whitespace-nowrap">Depth</th>
-                <th className="px-2 py-2 border whitespace-nowrap">AfterShock Risk</th>
+                <th className="px-4 py-3 border text-left">Date & Time</th>
+                <th className="px-4 py-3 border text-left">Latitude</th>
+                <th className="px-4 py-3 border text-left">Longitude</th>
+                <th className="px-4 py-3 border text-left">Magnitude</th>
+                <th className="px-4 py-3 border text-left">Depth</th>
+                <th className="px-4 py-3 border text-left">AfterShock Risk</th>
               </tr>
             </thead>
             <tbody>
               {currentData.map((item, index) => (
                 <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-2 py-2 border whitespace-nowrap">{item.DateTime}</td>
-                  <td className="px-2 py-2 border">{item.Latitude}</td>
-                  <td className="px-2 py-2 border">{item.Longitude}</td>
-                  <td className="px-2 py-2 border font-semibold">{item.Magnitude}</td>
-                  <td className="px-2 py-2 border">{item.Depth}</td>
-                  <td className="px-2 py-2 border">{item.AfterShock_Risk}</td>
+                  <td className="px-4 py-3 border">{item.DateTime}</td>
+                  <td className="px-4 py-3 border">{item.Latitude}</td>
+                  <td className="px-4 py-3 border">{item.Longitude}</td>
+                  <td className="px-4 py-3 border font-semibold text-red-600">{item.Magnitude}</td>
+                  <td className="px-4 py-3 border">{item.Depth}</td>
+                  <td className="px-4 py-3 border">{item.AfterShock_Risk}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
 
-      {/* Pagination */}
-      <div className="flex justify-center items-center mt-4 gap-2">
-        <button
-          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-          disabled={currentPage === 1}
-        >
-          Previous
-        </button>
-        <span className="px-3 py-1">
-          {currentPage} / {totalPages}
-        </span>
-        <button
-          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-          disabled={currentPage === totalPages}
-        >
-          Next
-        </button>
+        {/* Pagination */}
+        <div className="flex justify-center items-center mt-6 gap-2">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            className="px-3 py-2 bg-gray-200 rounded disabled:opacity-50 text-sm"
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          <span className="px-3 py-2 text-sm">
+            {currentPage} / {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            className="px-3 py-2 bg-gray-200 rounded disabled:opacity-50 text-sm"
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
-
   );
 };
 
