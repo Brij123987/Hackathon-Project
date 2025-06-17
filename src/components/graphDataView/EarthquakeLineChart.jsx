@@ -43,9 +43,18 @@ const EarthquakeLineChart = ({ location }) => {
               label: `Earthquake Magnitude in ${location}`,
               data: magnitudes,
               borderColor: "#ef4444",
-              backgroundColor: "#ef4444",
-              fill: false,
-              tension: 0.8
+              backgroundColor: "rgba(239, 68, 68, 0.1)",
+              fill: true,
+              tension: 0.4,
+              borderWidth: 3,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointBackgroundColor: "#ef4444",
+              pointBorderColor: "#ffffff",
+              pointBorderWidth: 2,
+              pointHoverBackgroundColor: "#dc2626",
+              pointHoverBorderColor: "#ffffff",
+              pointHoverBorderWidth: 3
             }
           ]
         });
@@ -109,26 +118,94 @@ const EarthquakeLineChart = ({ location }) => {
       <div className="w-full max-w-full px-0 mx-auto overflow-x-hidden">
         {/* Full Width Chart */}
         <div className="w-full px-2">
-          <div className="w-full h-[500px]">
+          <div className="w-full h-[500px] bg-white rounded-lg shadow-sm p-4">
             {chartData && chartData.labels && chartData.labels.length > 0 ? (
               <Line
                 data={chartData}
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
+                  interaction: {
+                    intersect: false,
+                    mode: 'index'
+                  },
                   plugins: {
-                    legend: { position: "top" },
+                    legend: { 
+                      position: "top",
+                      labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: {
+                          size: 14,
+                          weight: 'bold'
+                        }
+                      }
+                    },
+                    tooltip: {
+                      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                      titleColor: '#ffffff',
+                      bodyColor: '#ffffff',
+                      borderColor: '#ef4444',
+                      borderWidth: 1,
+                      cornerRadius: 8,
+                      displayColors: true,
+                      usePointStyle: true
+                    }
                   },
                   scales: {
                     x: {
                       type: "time",
-                      time: { unit: "day", tooltipFormat: "PPP p" },
-                      title: { display: true, text: "Date & Time" },
+                      time: { 
+                        unit: "day", 
+                        tooltipFormat: "PPP p",
+                        displayFormats: {
+                          day: 'MMM dd'
+                        }
+                      },
+                      title: { 
+                        display: true, 
+                        text: "Date & Time",
+                        font: {
+                          size: 14,
+                          weight: 'bold'
+                        }
+                      },
+                      grid: {
+                        color: 'rgba(0, 0, 0, 0.1)',
+                        lineWidth: 1
+                      },
+                      ticks: {
+                        font: {
+                          size: 12
+                        }
+                      }
                     },
                     y: {
-                      title: { display: true, text: "Magnitude (Richter)" },
+                      title: { 
+                        display: true, 
+                        text: "Magnitude (Richter)",
+                        font: {
+                          size: 14,
+                          weight: 'bold'
+                        }
+                      },
+                      grid: {
+                        color: 'rgba(0, 0, 0, 0.1)',
+                        lineWidth: 1
+                      },
+                      ticks: {
+                        font: {
+                          size: 12
+                        }
+                      },
+                      beginAtZero: false
                     },
                   },
+                  elements: {
+                    line: {
+                      tension: 0.4
+                    }
+                  }
                 }}
               />
             ) : (
