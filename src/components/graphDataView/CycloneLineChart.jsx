@@ -134,7 +134,7 @@ const CycloneLineChart = ({ location }) => {
   return (
     <div>
       <div className="w-full px-2">
-        <div className="w-full h-[600px]">
+        <div className="w-full h-[500px]">
           <Line
             data={chartData}
             options={{
