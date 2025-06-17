@@ -54,36 +54,16 @@ const CycloneLineChart = ({ location }) => {
               label: `Wind Speed (km/h) in ${location}`,
               data: windSpeeds,
               borderColor: "#10b981",
-              backgroundColor: "rgba(16, 185, 129, 0.1)",
-              fill: true,
+              backgroundColor: "#10b981",
               tension: 0.4,
-              borderWidth: 3,
-              pointRadius: 4,
-              pointHoverRadius: 6,
-              pointBackgroundColor: "#10b981",
-              pointBorderColor: "#ffffff",
-              pointBorderWidth: 2,
-              pointHoverBackgroundColor: "#059669",
-              pointHoverBorderColor: "#ffffff",
-              pointHoverBorderWidth: 3,
               yAxisID: "y1",
             },
             {
               label: `Wind Pressure (hPa)`,
               data: windPressures,
               borderColor: "#3b82f6",
-              backgroundColor: "rgba(59, 130, 246, 0.1)",
-              fill: true,
+              backgroundColor: "#3b82f6",
               tension: 0.4,
-              borderWidth: 3,
-              pointRadius: 4,
-              pointHoverRadius: 6,
-              pointBackgroundColor: "#3b82f6",
-              pointBorderColor: "#ffffff",
-              pointBorderWidth: 2,
-              pointHoverBackgroundColor: "#2563eb",
-              pointHoverBorderColor: "#ffffff",
-              pointHoverBorderWidth: 3,
               yAxisID: "y2",
             },
           ],
@@ -160,114 +140,31 @@ const CycloneLineChart = ({ location }) => {
   return (
     <div>
       <div className="w-full px-2">
-        <div className="w-full h-[500px] bg-white rounded-lg shadow-sm p-4">
+        <div className="w-full h-[500px]">
           <Line
             data={chartData}
             options={{
               responsive: true,
               maintainAspectRatio: false,
-              interaction: {
-                intersect: false,
-                mode: 'index'
-              },
               plugins: {
-                legend: { 
-                  position: "top",
-                  labels: {
-                    usePointStyle: true,
-                    padding: 20,
-                    font: {
-                      size: 14,
-                      weight: 'bold'
-                    }
-                  }
-                },
-                tooltip: {
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                  titleColor: '#ffffff',
-                  bodyColor: '#ffffff',
-                  borderColor: '#10b981',
-                  borderWidth: 1,
-                  cornerRadius: 8,
-                  displayColors: true,
-                  usePointStyle: true
-                }
+                legend: { position: "top" },
               },
               scales: {
                 x: {
                   type: "time",
-                  time: { 
-                    unit: "day", 
-                    tooltipFormat: "PPP",
-                    displayFormats: {
-                      day: 'MMM dd'
-                    }
-                  },
-                  title: { 
-                    display: true, 
-                    text: "Date",
-                    font: {
-                      size: 14,
-                      weight: 'bold'
-                    }
-                  },
-                  grid: {
-                    color: 'rgba(0, 0, 0, 0.1)',
-                    lineWidth: 1
-                  },
-                  ticks: {
-                    font: {
-                      size: 12
-                    }
-                  }
+                  time: { unit: "day", tooltipFormat: "PPP" },
+                  title: { display: true, text: "Date" },
                 },
                 y1: {
                   position: "left",
-                  title: { 
-                    display: true, 
-                    text: "Wind Speed (km/h)",
-                    font: {
-                      size: 14,
-                      weight: 'bold'
-                    }
-                  },
-                  grid: {
-                    color: 'rgba(0, 0, 0, 0.1)',
-                    lineWidth: 1
-                  },
-                  ticks: {
-                    font: {
-                      size: 12
-                    }
-                  }
+                  title: { display: true, text: "Wind Speed (km/h)" },
                 },
                 y2: {
                   position: "right",
-                  title: { 
-                    display: true, 
-                    text: "Wind Pressure (hPa)",
-                    font: {
-                      size: 14,
-                      weight: 'bold'
-                    }
-                  },
-                  grid: { 
-                    drawOnChartArea: false,
-                    color: 'rgba(0, 0, 0, 0.1)',
-                    lineWidth: 1
-                  },
-                  ticks: {
-                    font: {
-                      size: 12
-                    }
-                  }
+                  title: { display: true, text: "Wind Pressure (hPa)" },
+                  grid: { drawOnChartArea: false },
                 },
               },
-              elements: {
-                line: {
-                  tension: 0.4
-                }
-              }
             }}
           />
         </div>
