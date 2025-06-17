@@ -103,7 +103,7 @@ const EarthquakeLineChart = ({ location }) => {
       <div className="w-full max-w-full px-0 mx-auto overflow-x-hidden">
         {/* Full Width Chart */}
         <div className="w-full px-2">
-          <div className="w-full h-[600px]">
+          <div className="w-full h-[500px]">
             {chartData && chartData.labels && chartData.labels.length > 0 ? (
               <Line
                 data={chartData}
@@ -132,43 +132,44 @@ const EarthquakeLineChart = ({ location }) => {
         </div>
       </div>
 
-    {/* Export Buttons */}
-    <div className="flex justify-end gap-4 my-4 px-2 sm:px-4">
-      <button onClick={exportToCSV} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
-        Export CSV
-      </button>
-      <button onClick={exportToPDF} className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-        Export PDF
-      </button>
-    </div>
+      {/* Export Buttons */}
+      <div className="flex justify-end gap-4 my-4 px-2 sm:px-4">
+        <button onClick={exportToCSV} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+          Export CSV
+        </button>
+        <button onClick={exportToPDF} className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+          Export PDF
+        </button>
+      </div>
 
-    {/* Table */}
-    <div className="w-full px-2 sm:px-4">
-      <div className="overflow-x-auto">
-        <table className="min-w-full border border-gray-300 text-sm text-left">
-          <thead className="bg-blue-100 text-xs font-semibold uppercase">
-            <tr>
-              <th className="px-4 py-2 border">Date & Time</th>
-              <th className="px-4 py-2 border">Latitude</th>
-              <th className="px-4 py-2 border">Longitude</th>
-              <th className="px-4 py-2 border">Magnitude</th>
-              <th className="px-4 py-2 border">Depth</th>
-              <th className="px-4 py-2 border">AfterShock Risk</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentData.map((item, index) => (
-              <tr key={index} className="hover:bg-gray-50">
-                <td className="px-4 py-2 border">{item.DateTime}</td>
-                <td className="px-4 py-2 border">{item.Latitude}</td>
-                <td className="px-4 py-2 border">{item.Longitude}</td>
-                <td className="px-4 py-2 border font-semibold">{item.Magnitude}</td>
-                <td className="px-4 py-2 border">{item.Depth}</td>
-                <td className="px-4 py-2 border">{item.AfterShock_Risk}</td>
+      {/* Table */}
+      <div className="w-full max-w-full">
+        <div className="w-full overflow-x-auto px-2"> 
+          <table className="w-full text-xs sm:text-sm border border-gray-300">    
+            <thead className="bg-blue-100 font-semibold uppercase">
+              <tr>
+                <th className="px-2 py-2 border whitespace-nowrap">Date & Time</th>
+                <th className="px-2 py-2 border whitespace-nowrap">Latitude</th>
+                <th className="px-2 py-2 border whitespace-nowrap">Longitude</th>
+                <th className="px-2 py-2 border whitespace-nowrap">Magnitude</th>
+                <th className="px-2 py-2 border whitespace-nowrap">Depth</th>
+                <th className="px-2 py-2 border whitespace-nowrap">AfterShock Risk</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {currentData.map((item, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="px-2 py-2 border whitespace-nowrap">{item.DateTime}</td>
+                  <td className="px-2 py-2 border">{item.Latitude}</td>
+                  <td className="px-2 py-2 border">{item.Longitude}</td>
+                  <td className="px-2 py-2 border font-semibold">{item.Magnitude}</td>
+                  <td className="px-2 py-2 border">{item.Depth}</td>
+                  <td className="px-2 py-2 border">{item.AfterShock_Risk}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Pagination */}
@@ -192,7 +193,6 @@ const EarthquakeLineChart = ({ location }) => {
         </button>
       </div>
     </div>
-  </div>
 
   );
 };
