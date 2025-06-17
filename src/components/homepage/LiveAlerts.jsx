@@ -21,7 +21,7 @@ function LiveAlerts() {
                 const windTime = res.data.data.cyclone_data.dt;
 
 
-                setWindSpeed(wind);
+                setWindSpeed(parseFloat((wind * 3.6).toFixed(2)));
                 setWindPressure(pressure);
                 setWindTime(windTime);
             })

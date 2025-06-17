@@ -99,96 +99,101 @@ const EarthquakeLineChart = ({ location }) => {
   const currentData = tableData.slice(startIndex, startIndex + rowsPerPage);
 
   return (
-    <div className="p-4">
-      {loading && (
-        <div className="flex justify-center items-center h-32">
-          <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-blue-500"></div>
+    <div>
+      <div className="w-full max-w-full px-0 mx-auto overflow-x-hidden">
+        {/* Full Width Chart */}
+        <div className="w-full px-2">
+          <div className="w-full h-[600px]">
+            {chartData && chartData.labels && chartData.labels.length > 0 ? (
+              <Line
+                data={chartData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { position: "top" },
+                  },
+                  scales: {
+                    x: {
+                      type: "time",
+                      time: { unit: "day", tooltipFormat: "PPP p" },
+                      title: { display: true, text: "Date & Time" },
+                    },
+                    y: {
+                      title: { display: true, text: "Magnitude (Richter)" },
+                    },
+                  },
+                }}
+              />
+            ) : (
+              <p className="text-center text-gray-500">Loading chart...</p>
+            )}
+          </div>
         </div>
-      )}
+      </div>
 
-      {!loading && error && (
-        <div className="text-center text-red-600 font-semibold">{error}</div>
-      )}
-
-      {!loading && chartData && (
-        <>
-          <Line
-            data={chartData}
-            options={{
-              responsive: true,
-              plugins: {
-                legend: { position: "top" }
-              },
-              scales: {
-                x: {
-                  type: "time",
-                  time: { unit: "day", tooltipFormat: "PPP p" },
-                  title: { display: true, text: "Date & Time" }
-                },
-                y: {
-                  title: { display: true, text: "Magnitude (Richter)" }
-                }
-              }
-            }}
-          />
-
-          <div className="flex justify-end gap-4 my-4">
-            <button onClick={exportToCSV} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
-              Export CSV
-            </button>
-            <button onClick={exportToPDF} className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-              Export PDF
-            </button>
-          </div>
-
-          <div className="overflow-x-auto w-full">
-            <table className="min-w-full border border-gray-300 text-sm text-left">
-              <thead className="bg-blue-100 text-xs font-semibold uppercase">
-                <tr>
-                  <th className="px-4 py-2 border">Date & Time</th>
-                  <th className="px-4 py-2 border">Latitude</th>
-                  <th className="px-4 py-2 border">Longitude</th>
-                  <th className="px-4 py-2 border">Magnitude</th>
-                  <th className="px-4 py-2 border">Depth</th>
-                  <th className="px-4 py-2 border">AfterShock Risk</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentData.map((item, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 border">{item.DateTime}</td>
-                    <td className="px-4 py-2 border">{item.Latitude}</td>
-                    <td className="px-4 py-2 border">{item.Longitude}</td>
-                    <td className="px-4 py-2 border font-semibold">{item.Magnitude}</td>
-                    <td className="px-4 py-2 border">{item.Depth}</td>
-                    <td className="px-4 py-2 border">{item.AfterShock_Risk}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Pagination Controls */}
-            <div className="flex justify-center items-center mt-4 gap-2">
-              <button
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-                disabled={currentPage === 1}
-              >
-                Previous
-              </button>
-              <span className="px-3 py-1">{currentPage} / {totalPages}</span>
-              <button
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+    {/* Export Buttons */}
+    <div className="flex justify-end gap-4 my-4 px-2 sm:px-4">
+      <button onClick={exportToCSV} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+        Export CSV
+      </button>
+      <button onClick={exportToPDF} className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+        Export PDF
+      </button>
     </div>
+
+    {/* Table */}
+    <div className="w-full px-2 sm:px-4">
+      <div className="overflow-x-auto">
+        <table className="min-w-full border border-gray-300 text-sm text-left">
+          <thead className="bg-blue-100 text-xs font-semibold uppercase">
+            <tr>
+              <th className="px-4 py-2 border">Date & Time</th>
+              <th className="px-4 py-2 border">Latitude</th>
+              <th className="px-4 py-2 border">Longitude</th>
+              <th className="px-4 py-2 border">Magnitude</th>
+              <th className="px-4 py-2 border">Depth</th>
+              <th className="px-4 py-2 border">AfterShock Risk</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentData.map((item, index) => (
+              <tr key={index} className="hover:bg-gray-50">
+                <td className="px-4 py-2 border">{item.DateTime}</td>
+                <td className="px-4 py-2 border">{item.Latitude}</td>
+                <td className="px-4 py-2 border">{item.Longitude}</td>
+                <td className="px-4 py-2 border font-semibold">{item.Magnitude}</td>
+                <td className="px-4 py-2 border">{item.Depth}</td>
+                <td className="px-4 py-2 border">{item.AfterShock_Risk}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      <div className="flex justify-center items-center mt-4 gap-2">
+        <button
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+          disabled={currentPage === 1}
+        >
+          Previous
+        </button>
+        <span className="px-3 py-1">
+          {currentPage} / {totalPages}
+        </span>
+        <button
+          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+          disabled={currentPage === totalPages}
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  </div>
+
   );
 };
 
