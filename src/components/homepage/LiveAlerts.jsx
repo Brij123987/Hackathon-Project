@@ -89,6 +89,31 @@ function LiveAlerts() {
         })
     }, [])
 
+    let warningMessage = null;
+
+    if (earthQuakePrediction === "Low") {
+        warningMessage = (
+            <p className="text-lg font-semibold text-green-600">
+                ✅ EarthQuake Risk is Low near Bay of Bengal
+            </p>
+        );
+        
+    } else if (earthQuakePrediction === "Medium") {
+        warningMessage = (
+            <p className="text-lg font-semibold text-orange-600">
+                ⚠️ Moderate EarthQuake Risk near Bay of Bengal
+            </p>
+        );
+        
+    } else if (earthQuakePrediction === "High") {
+        warningMessage = (
+            <p className="text-lg font-semibold text-red-600">
+                🚨 EarthQuake Warning near Bay of Bengal
+            </p>
+        );
+        
+    }
+
     return (
         <section id="alerts" className="py-16 px-6 md:px-20 bg-blue-50">
             <h2 className="text-3xl font-bold mb-8 text-center">Live Disaster Alerts</h2>
@@ -107,7 +132,7 @@ function LiveAlerts() {
             </div>
             <br />
             <div className="bg-white p-6 rounded-xl shadow-md text-center">
-                <p className="text-lg font-semibold text-red-600">🚨 EarthQuake Warning near Bay of Bengal</p>
+                {warningMessage}
                 <p className="text-sm text-gray-600 mt-2">
                     Predicted Magnitude: {predictedMagnitude ? `${predictedMagnitude}` : "Loading..."} | Expected In Hours: {expectedInHours ? `${expectedInHours}` : "Loading..."} | EarthQuake Prediction: {earthQuakePrediction ? `${earthQuakePrediction}` : "Loading..."}
                 </p>

@@ -7,6 +7,8 @@ import DropDownPanel from './components/header/DropDownPanel';
 import Footer from './components/footer/Footer';
 import Home from './components/homepage/Home';
 import GraphView from './components/graphDataView/GraphView'; // Create this component
+import UserRegistration from './components/userSystem/UserRegistration';
+import UserLogin from './components/userSystem/UserLogin';
 import './App.css';
 
 function App() {
@@ -22,6 +24,8 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/graphs" element={<GraphView location="japan" />} />
+            <Route path="/signup" element={< UserRegistration />} />
+            <Route path="/login" element={<UserLogin /> } />
           </Routes>
         </div>
 
