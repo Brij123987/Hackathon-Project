@@ -33,12 +33,14 @@ const CycloneLineChart = ({ location }) => {
   const [error, setError] = useState("");
   const rowsPerPage = 10;
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
   useEffect(() => {
     setLoading(true);
     setError("");
 
     axios
-      .get(`http://127.0.0.1:8000/feature/get_cyclone_data_json/?location=${location}`)
+      .get(`${API_BASE_URL}/feature/get_cyclone_data_json/?location=${location}`)
       .then((res) => {
         const sorted = res.data.data.sort((a, b) => new Date(a.Date) - new Date(b.Date));
         const reversed = [...sorted].reverse();
@@ -78,7 +80,7 @@ const CycloneLineChart = ({ location }) => {
         setError("Failed to load cyclone data. Please try again later.");
         setLoading(false);
       });
-  }, [location]);
+  }, [location, API_BASE_URL]);
 
   const totalPages = Math.ceil(tableData.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;

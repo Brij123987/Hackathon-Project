@@ -16,6 +16,7 @@ function UserRegistration() {
     const navigate = useNavigate();
 
     const { getCurrentLocation } = useLocationContext();
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -64,7 +65,7 @@ function UserRegistration() {
             };
 
             const response = await axios.post(
-                "http://127.0.0.1:8000/user/register/", 
+                `${API_BASE_URL}/user/register/`, 
                 registrationData,
                 {
                     headers: {

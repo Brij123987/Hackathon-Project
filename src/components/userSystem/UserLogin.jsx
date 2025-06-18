@@ -13,6 +13,8 @@ function UserLogin() {
     const [message, setMessage] = useState("");
     const navigate = useNavigate();
 
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
         setFormData({
@@ -28,7 +30,7 @@ function UserLogin() {
 
         try {
             const response = await axios.post(
-                "http://127.0.0.1:8000/user/login/", 
+                `${API_BASE_URL}/user/login/`, 
                 {
                     username: formData.username.trim(),
                     password: formData.password,

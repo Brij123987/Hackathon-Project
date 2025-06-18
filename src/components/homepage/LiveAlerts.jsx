@@ -21,6 +21,7 @@ function LiveAlerts() {
     const [error, setError] = useState('');
 
     const today = new Date().toISOString().split("T")[0];
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
     useEffect(() => {
         if (isLoading || !locationData?.city) return;
@@ -31,7 +32,7 @@ function LiveAlerts() {
         const fetchCycloneData = async () => {
             try {
                 const res = await axios.get(
-                    `http://127.0.0.1:8000/feature/get_cyclone_data/?location=${locationData.city}&end_date=${today}`,
+                    `${API_BASE_URL}/feature/get_cyclone_data/?location=${locationData.city}&end_date=${today}`,
                     { timeout: 10000 }
                 );
                 
@@ -50,7 +51,7 @@ function LiveAlerts() {
         };
 
         fetchCycloneData();
-    }, [locationData, isLoading, today]);
+    }, [locationData, isLoading, today, API_BASE_URL]);
 
     useEffect(() => {
         if (windTime) {
@@ -82,7 +83,7 @@ function LiveAlerts() {
         const fetchEarthquakeData = async () => {
             try {
                 const res = await axios.get(
-                    `http://127.0.0.1:8000/feature/get_location_earthquake_historical_data/?location=${locationData.city}`,
+                    `${API_BASE_URL}/feature/get_location_earthquake_historical_data/?location=${locationData.city}`,
                     { timeout: 10000 }
                 );
                 
@@ -100,7 +101,7 @@ function LiveAlerts() {
         };
 
         fetchEarthquakeData();
-    }, [locationData, isLoading]); 
+    }, [locationData, isLoading, API_BASE_URL]); 
 
     useEffect(() => {
         if (isLoading || !locationData?.city) return;
@@ -108,7 +109,7 @@ function LiveAlerts() {
         const fetchCyclonePrediction = async () => {
             try {
                 const res = await axios.get(
-                    `http://127.0.0.1:8000/feature/get_cyclone_prediction/?location=${locationData.city}&end_date=${today}`,
+                    `${API_BASE_URL}/feature/get_cyclone_prediction/?location=${locationData.city}&end_date=${today}`,
                     { timeout: 10000 }
                 );
                 
@@ -122,7 +123,7 @@ function LiveAlerts() {
         };
 
         fetchCyclonePrediction();
-    }, [locationData, isLoading, today]);
+    }, [locationData, isLoading, today, API_BASE_URL]);
 
     if (isLoading) {
         return (

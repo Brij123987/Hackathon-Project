@@ -25,10 +25,12 @@ const EarthquakeLineChart = ({ location }) => {
   const [error, setError] = useState('');
   const rowsPerPage = 10;
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
   useEffect(() => {
     setLoading(true);
     setError('');
-    axios.get(`http://127.0.0.1:8000/feature/get_earthquake_data_json/?location=${location}`)
+    axios.get(`${API_BASE_URL}/feature/get_earthquake_data_json/?location=${location}`)
       .then((res) => {
         const sorted = res.data.data.sort((a, b) => new Date(a.DateTime) - new Date(b.DateTime));
         const reversed = [...sorted].reverse();
@@ -68,7 +70,7 @@ const EarthquakeLineChart = ({ location }) => {
         setLoading(false);
         console.error(err);
       });
-  }, [location]);
+  }, [location, API_BASE_URL]);
 
   const exportToCSV = () => {
     const headers = ['DateTime', 'Latitude', 'Longitude', 'Magnitude', 'Depth', 'AfterShock Risk'];
