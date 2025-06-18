@@ -13,11 +13,18 @@ function Header({ children }) {
       </div>
 
       <div className="right">
-        <div className="hamburger" onClick={toggleDropdown}>
-          <div className={`bar ${isOpen ? 'active' : ''}`} />
-          <div className={`bar ${isOpen ? 'active' : ''}`} />
-          <div className={`bar ${isOpen ? 'active' : ''}`} />
-        </div>
+        <button 
+          className={`menu-button ${isOpen ? 'active' : ''}`} 
+          onClick={toggleDropdown}
+          aria-label="Toggle menu"
+          aria-expanded={isOpen}
+        >
+          <div className="menu-icon">
+            <div className="menu-line" />
+            <div className="menu-line" />
+            <div className="menu-line" />
+          </div>
+        </button>
         {isOpen && children[1]} {/* DropDownPanel */}
       </div>
     </header>
