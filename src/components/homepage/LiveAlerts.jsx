@@ -9,7 +9,7 @@ function LiveAlerts() {
 
     const [windSpeed, setWindSpeed] = useState(null);
     const [windPressure, setWindPressure] = useState(null);
-    const [windTime, setWindTime] = useState(null);
+    const [lastUpdated, setLastUpdated] = useState(null);
     const [timeDifference, setTimeDifference] = useState('');
 
     const [cyclonePrediction, setCyclonePrediction] = useState('');
@@ -48,12 +48,13 @@ function LiveAlerts() {
             
             const wind = res.data.data.cyclone_data.wind.speed;
             const pressure = res.data.data.cyclone_data.main.pressure;
-            const timestamp = res.data.data.timestamp;
-
+            
             setWindSpeed((wind * 3.6).toFixed(2));
             setWindPressure(pressure);
-            setWindTime(Math.floor(timestamp));
+            // Set the current time as last updated since API doesn't provide reliable timestamp
+            setLastUpdated(Date.now());
             setCyclonePrediction(res.data.data.prediction || '');
+            setCycloneError(''); // Clear any previous errors
         } catch (err) {
             console.error("Failed to fetch cyclone data:", err);
             setCycloneError('Unable to load cyclone data. Please check your connection.');
@@ -85,6 +86,7 @@ function LiveAlerts() {
             setPredictedMagnitude(predictedMagnitude);
             setExpectedInHours(expectedInHours);
             setEarthQuakePrediction(earthQuakePrediction);
+            setEarthquakeError(''); // Clear any previous errors
         } catch (error) {
             console.error('Error in Fetching Earthquake Prediction', error);
             
@@ -115,11 +117,28 @@ function LiveAlerts() {
             
             const cyclonePrediction = res.data.data.CyclonePrediction;
             setCyclonePrediction(cyclonePrediction);
+            setCycloneError(''); // Clear any previous errors
         } catch (error) {
             console.log("Error in Getting Cyclone Prediction", error);
             setCycloneError('Unable to load cyclone prediction data.');
         }
     }, [locationData?.city, today, API_BASE_URL, isAuthenticated]);
+
+    // Function to refresh all data
+    const refreshData = useCallback(async () => {
+        if (!isAuthenticated || !locationData?.city) return;
+        
+        setDataLoading(true);
+        try {
+            await Promise.allSettled([
+                fetchCycloneData(),
+                fetchEarthquakeData(),
+                fetchCyclonePrediction()
+            ]);
+        } finally {
+            setDataLoading(false);
+        }
+    }, [isAuthenticated, locationData?.city, fetchCycloneData, fetchEarthquakeData, fetchCyclonePrediction]);
 
     // Single effect for initial data loading
     useEffect(() => {
@@ -145,13 +164,25 @@ function LiveAlerts() {
         loadAllData();
     }, [isLoading, locationData?.city, isAuthenticated, fetchCycloneData, fetchEarthquakeData, fetchCyclonePrediction]);
 
-    // Separate effect for time difference calculation
+    // Auto-refresh data every 5 minutes
     useEffect(() => {
-        if (!windTime || !isAuthenticated) return;
+        if (!isAuthenticated || !locationData?.city) return;
+
+        const interval = setInterval(() => {
+            console.log('Auto-refreshing disaster data...');
+            refreshData();
+        }, 5 * 60 * 1000); // 5 minutes
+
+        return () => clearInterval(interval);
+    }, [isAuthenticated, locationData?.city, refreshData]);
+
+    // Effect for time difference calculation
+    useEffect(() => {
+        if (!lastUpdated || !isAuthenticated) return;
 
         const updateTimeDifference = () => {
-            const now = Math.floor(Date.now() / 1000);
-            const diffInSeconds = now - windTime;
+            const now = Date.now();
+            const diffInSeconds = Math.floor((now - lastUpdated) / 1000);
 
             let display = "";
 
@@ -173,11 +204,11 @@ function LiveAlerts() {
 
         updateTimeDifference();
         
-        // Update every minute instead of every second to reduce CPU usage
-        const interval = setInterval(updateTimeDifference, 60000);
+        // Update every 30 seconds for more responsive time display
+        const interval = setInterval(updateTimeDifference, 30000);
         
         return () => clearInterval(interval);
-    }, [windTime, isAuthenticated]);
+    }, [lastUpdated, isAuthenticated]);
 
     // Empty state for unauthenticated users
     if (!isAuthenticated) {
@@ -290,6 +321,29 @@ function LiveAlerts() {
         <section id="alerts" className="py-16 px-6 md:px-20 bg-blue-50">
             <h2 className="text-3xl font-bold mb-8 text-center">Live Disaster Alerts</h2>
             
+            {/* Refresh Button */}
+            <div className="flex justify-center mb-4">
+                <button
+                    onClick={refreshData}
+                    disabled={dataLoading}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+                >
+                    {dataLoading ? (
+                        <>
+                            <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Refreshing...
+                        </>
+                    ) : (
+                        <>
+                            🔄 Refresh Data
+                        </>
+                    )}
+                </button>
+            </div>
+            
             {/* Cyclone Alert */}
             <div className="bg-white p-6 rounded-xl shadow-md text-center mb-4">
                 {dataLoading ? (
@@ -311,7 +365,7 @@ function LiveAlerts() {
                         <p className="text-sm text-gray-600 mt-2">
                             Wind speed: {windSpeed ? `${windSpeed} km/h` : "Loading..."} |{" "}
                             Pressure: {windPressure ? `${windPressure} hPa` : "Loading..."} | 
-                            Updated: {timeDifference || "Loading..."}
+                            Updated: {timeDifference || "Just now"}
                         </p>
                     </>
                 )}
@@ -336,6 +390,13 @@ function LiveAlerts() {
                         )}
                     </>
                 )}
+            </div>
+
+            {/* Auto-refresh indicator */}
+            <div className="text-center mt-4">
+                <p className="text-xs text-gray-500">
+                    🔄 Data automatically refreshes every 5 minutes
+                </p>
             </div>
         </section>
     );
