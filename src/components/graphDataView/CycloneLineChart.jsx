@@ -38,7 +38,7 @@ const CycloneLineChart = ({ location }) => {
   // Memoize the API call to prevent unnecessary re-renders
   const fetchCycloneData = useCallback(async () => {
     if (!location || !API_BASE_URL) return;
-    
+
     setLoading(true);
     setError("");
 
@@ -47,7 +47,7 @@ const CycloneLineChart = ({ location }) => {
         `${API_BASE_URL}/feature/get_cyclone_data_json/?location=${location}`,
         { timeout: 15000 }
       );
-      
+
       const sorted = res.data.data.sort((a, b) => new Date(a.Date) - new Date(b.Date));
       const reversed = [...sorted].reverse();
 
@@ -100,7 +100,7 @@ const CycloneLineChart = ({ location }) => {
   // Format date for mobile display (shorter format)
   const formatDateForMobile = useCallback((dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }, []);
 
   const exportToCSV = useCallback(() => {
@@ -183,7 +183,7 @@ const CycloneLineChart = ({ location }) => {
           />
         </div>
       </div>
-      
+
       {/* Export Buttons */}
       <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4 my-4 px-2 sm:px-4">
         <button
@@ -199,7 +199,7 @@ const CycloneLineChart = ({ location }) => {
           Export PDF
         </button>
       </div>
-      
+
       {/* Responsive Table - Always Table Format */}
       <div className="w-full px-2 sm:px-4">
         <div className="w-full overflow-x-auto">
