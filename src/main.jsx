@@ -3,6 +3,7 @@ import './index.css';
 import App from './App.jsx';
 
 createRoot(document.getElementById('root')).render(
+  // Remove StrictMode to prevent double API calls in development
   <App />
 );
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import axios from "axios";
 import { useLocationContext } from "../userSystem/LocationContext";
 import { useNavigate } from "react-router-dom";
@@ -27,23 +27,41 @@ function LiveAlerts() {
     // Check authentication status
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+    // Use refs to prevent multiple API calls
+    const isInitialLoadRef = useRef(true);
+    const lastFetchTimeRef = useRef(0);
+    const abortControllerRef = useRef(null);
+
     const today = useMemo(() => new Date().toISOString().split("T")[0], []);
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-    // Check if user is authenticated
+    // Check if user is authenticated - only run once
     useEffect(() => {
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
         setIsAuthenticated(!!token);
     }, []);
 
-    // Memoize the fetch functions to prevent recreation on every render
-    const fetchCycloneData = useCallback(async () => {
-        if (!locationData?.city || !isAuthenticated) return;
+    // Prevent rapid successive API calls
+    const shouldFetchData = useCallback(() => {
+        const now = Date.now();
+        const timeSinceLastFetch = now - lastFetchTimeRef.current;
+        const minInterval = 2000; // Minimum 2 seconds between API calls
+        
+        return timeSinceLastFetch > minInterval;
+    }, []);
+
+    // Memoize the fetch functions with stable dependencies
+    const fetchCycloneData = useCallback(async (signal) => {
+        if (!locationData?.city || !isAuthenticated || !API_BASE_URL) return;
         
         try {
+            console.log('Fetching cyclone data for:', locationData.city);
             const res = await axios.get(
                 `${API_BASE_URL}/feature/get_cyclone_data/?location=${locationData.city}&end_date=${today}`,
-                { timeout: 10000 }
+                { 
+                    timeout: 10000,
+                    signal // Pass abort signal
+                }
             );
             
             const wind = res.data.data.cyclone_data.wind.speed;
@@ -51,28 +69,29 @@ function LiveAlerts() {
             
             setWindSpeed((wind * 3.6).toFixed(2));
             setWindPressure(pressure);
-            // Set the current time as last updated since API doesn't provide reliable timestamp
             setLastUpdated(Date.now());
             setCyclonePrediction(res.data.data.prediction || '');
-            setCycloneError(''); // Clear any previous errors
+            setCycloneError('');
         } catch (err) {
+            if (err.name === 'AbortError') {
+                console.log('Cyclone API call was aborted');
+                return;
+            }
             console.error("Failed to fetch cyclone data:", err);
             setCycloneError('Unable to load cyclone data. Please check your connection.');
         }
     }, [locationData?.city, today, API_BASE_URL, isAuthenticated]);
 
-    const fetchEarthquakeData = useCallback(async () => {
-        if (!locationData?.city || !isAuthenticated) return;
+    const fetchEarthquakeData = useCallback(async (signal) => {
+        if (!locationData?.city || !isAuthenticated || !API_BASE_URL) return;
 
         try {
-            if (!API_BASE_URL) {
-                throw new Error('API base URL is not configured');
-            }
-
+            console.log('Fetching earthquake data for:', locationData.city);
             const res = await axios.get(
                 `${API_BASE_URL}/feature/get_location_earthquake_historical_data/?location=${locationData.city}`,
                 { 
                     timeout: 15000,
+                    signal, // Pass abort signal
                     headers: {
                         'Content-Type': 'application/json',
                     }
@@ -86,8 +105,12 @@ function LiveAlerts() {
             setPredictedMagnitude(predictedMagnitude);
             setExpectedInHours(expectedInHours);
             setEarthQuakePrediction(earthQuakePrediction);
-            setEarthquakeError(''); // Clear any previous errors
+            setEarthquakeError('');
         } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('Earthquake API call was aborted');
+                return;
+            }
             console.error('Error in Fetching Earthquake Prediction', error);
             
             if (error.code === 'ECONNABORTED') {
@@ -106,74 +129,112 @@ function LiveAlerts() {
         }
     }, [locationData?.city, API_BASE_URL, isAuthenticated]);
 
-    const fetchCyclonePrediction = useCallback(async () => {
-        if (!locationData?.city || !isAuthenticated) return;
+    const fetchCyclonePrediction = useCallback(async (signal) => {
+        if (!locationData?.city || !isAuthenticated || !API_BASE_URL) return;
 
         try {
+            console.log('Fetching cyclone prediction for:', locationData.city);
             const res = await axios.get(
                 `${API_BASE_URL}/feature/get_cyclone_prediction/?location=${locationData.city}&end_date=${today}`,
-                { timeout: 10000 }
+                { 
+                    timeout: 10000,
+                    signal // Pass abort signal
+                }
             );
             
             const cyclonePrediction = res.data.data.CyclonePrediction;
             setCyclonePrediction(cyclonePrediction);
-            setCycloneError(''); // Clear any previous errors
+            setCycloneError('');
         } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('Cyclone prediction API call was aborted');
+                return;
+            }
             console.log("Error in Getting Cyclone Prediction", error);
             setCycloneError('Unable to load cyclone prediction data.');
         }
     }, [locationData?.city, today, API_BASE_URL, isAuthenticated]);
 
-    // Function to refresh all data
+    // Function to refresh all data with abort controller
     const refreshData = useCallback(async () => {
-        if (!isAuthenticated || !locationData?.city) return;
+        if (!isAuthenticated || !locationData?.city || !shouldFetchData()) {
+            console.log('Skipping data fetch - conditions not met or too soon');
+            return;
+        }
+        
+        // Abort any ongoing requests
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        
+        // Create new abort controller
+        abortControllerRef.current = new AbortController();
+        const signal = abortControllerRef.current.signal;
         
         setDataLoading(true);
+        lastFetchTimeRef.current = Date.now();
+        
         try {
+            console.log('Starting data refresh...');
             await Promise.allSettled([
-                fetchCycloneData(),
-                fetchEarthquakeData(),
-                fetchCyclonePrediction()
+                fetchCycloneData(signal),
+                fetchEarthquakeData(signal),
+                fetchCyclonePrediction(signal)
             ]);
+            console.log('Data refresh completed');
         } finally {
             setDataLoading(false);
         }
-    }, [isAuthenticated, locationData?.city, fetchCycloneData, fetchEarthquakeData, fetchCyclonePrediction]);
+    }, [isAuthenticated, locationData?.city, shouldFetchData, fetchCycloneData, fetchEarthquakeData, fetchCyclonePrediction]);
 
-    // Single effect for initial data loading
+    // Single effect for initial data loading - only run once when conditions are met
     useEffect(() => {
-        if (isLoading || !locationData?.city || !isAuthenticated) return;
+        // Skip if still loading location or not authenticated
+        if (isLoading || !locationData?.city || !isAuthenticated) {
+            return;
+        }
+
+        // Skip if this is not the initial load and we've already fetched data recently
+        if (!isInitialLoadRef.current && !shouldFetchData()) {
+            console.log('Skipping duplicate API call - too soon since last fetch');
+            return;
+        }
+
+        console.log('Initial data load triggered for:', locationData.city);
         
-        setDataLoading(true);
         setError('');
         setCycloneError('');
         setEarthquakeError('');
 
-        const loadAllData = async () => {
-            try {
-                await Promise.allSettled([
-                    fetchCycloneData(),
-                    fetchEarthquakeData(),
-                    fetchCyclonePrediction()
-                ]);
-            } finally {
-                setDataLoading(false);
+        // Mark that initial load has been attempted
+        isInitialLoadRef.current = false;
+        
+        refreshData();
+
+        // Cleanup function to abort requests if component unmounts
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
             }
         };
+    }, [isLoading, locationData?.city, isAuthenticated]); // Minimal dependencies
 
-        loadAllData();
-    }, [isLoading, locationData?.city, isAuthenticated, fetchCycloneData, fetchEarthquakeData, fetchCyclonePrediction]);
-
-    // Auto-refresh data every 5 minutes
+    // Auto-refresh data every 5 minutes - separate from initial load
     useEffect(() => {
-        if (!isAuthenticated || !locationData?.city) return;
+        if (!isAuthenticated || !locationData?.city || isInitialLoadRef.current) {
+            return;
+        }
 
+        console.log('Setting up auto-refresh interval');
         const interval = setInterval(() => {
-            console.log('Auto-refreshing disaster data...');
+            console.log('Auto-refresh triggered');
             refreshData();
         }, 5 * 60 * 1000); // 5 minutes
 
-        return () => clearInterval(interval);
+        return () => {
+            console.log('Clearing auto-refresh interval');
+            clearInterval(interval);
+        };
     }, [isAuthenticated, locationData?.city, refreshData]);
 
     // Effect for time difference calculation
@@ -209,6 +270,15 @@ function LiveAlerts() {
         
         return () => clearInterval(interval);
     }, [lastUpdated, isAuthenticated]);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, []);
 
     // Empty state for unauthenticated users
     if (!isAuthenticated) {
