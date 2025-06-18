@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import { useLocationContext } from "../userSystem/LocationContext";
+import { useNavigate } from "react-router-dom";
 
 function LiveAlerts() {
     const { locationData, isLoading } = useLocationContext();
+    const navigate = useNavigate();
 
     const [windSpeed, setWindSpeed] = useState(null);
     const [windPressure, setWindPressure] = useState(null);
@@ -22,12 +24,21 @@ function LiveAlerts() {
     const [earthquakeError, setEarthquakeError] = useState('');
     const [cycloneError, setCycloneError] = useState('');
 
+    // Check authentication status
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+
     const today = useMemo(() => new Date().toISOString().split("T")[0], []);
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+    // Check if user is authenticated
+    useEffect(() => {
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        setIsAuthenticated(!!token);
+    }, []);
+
     // Memoize the fetch functions to prevent recreation on every render
     const fetchCycloneData = useCallback(async () => {
-        if (!locationData?.city) return;
+        if (!locationData?.city || !isAuthenticated) return;
         
         try {
             const res = await axios.get(
@@ -47,10 +58,10 @@ function LiveAlerts() {
             console.error("Failed to fetch cyclone data:", err);
             setCycloneError('Unable to load cyclone data. Please check your connection.');
         }
-    }, [locationData?.city, today, API_BASE_URL]);
+    }, [locationData?.city, today, API_BASE_URL, isAuthenticated]);
 
     const fetchEarthquakeData = useCallback(async () => {
-        if (!locationData?.city) return;
+        if (!locationData?.city || !isAuthenticated) return;
 
         try {
             if (!API_BASE_URL) {
@@ -91,10 +102,10 @@ function LiveAlerts() {
                 setEarthquakeError('Unable to load earthquake data. Please try again later.');
             }
         }
-    }, [locationData?.city, API_BASE_URL]);
+    }, [locationData?.city, API_BASE_URL, isAuthenticated]);
 
     const fetchCyclonePrediction = useCallback(async () => {
-        if (!locationData?.city) return;
+        if (!locationData?.city || !isAuthenticated) return;
 
         try {
             const res = await axios.get(
@@ -108,11 +119,11 @@ function LiveAlerts() {
             console.log("Error in Getting Cyclone Prediction", error);
             setCycloneError('Unable to load cyclone prediction data.');
         }
-    }, [locationData?.city, today, API_BASE_URL]);
+    }, [locationData?.city, today, API_BASE_URL, isAuthenticated]);
 
     // Single effect for initial data loading
     useEffect(() => {
-        if (isLoading || !locationData?.city) return;
+        if (isLoading || !locationData?.city || !isAuthenticated) return;
         
         setDataLoading(true);
         setError('');
@@ -132,11 +143,11 @@ function LiveAlerts() {
         };
 
         loadAllData();
-    }, [isLoading, locationData?.city, fetchCycloneData, fetchEarthquakeData, fetchCyclonePrediction]);
+    }, [isLoading, locationData?.city, isAuthenticated, fetchCycloneData, fetchEarthquakeData, fetchCyclonePrediction]);
 
     // Separate effect for time difference calculation
     useEffect(() => {
-        if (!windTime) return;
+        if (!windTime || !isAuthenticated) return;
 
         const updateTimeDifference = () => {
             const now = Math.floor(Date.now() / 1000);
@@ -166,7 +177,72 @@ function LiveAlerts() {
         const interval = setInterval(updateTimeDifference, 60000);
         
         return () => clearInterval(interval);
-    }, [windTime]);
+    }, [windTime, isAuthenticated]);
+
+    // Empty state for unauthenticated users
+    if (!isAuthenticated) {
+        return (
+            <section id="alerts" className="py-16 px-6 md:px-20 bg-blue-50">
+                <h2 className="text-3xl font-bold mb-8 text-center">Live Disaster Alerts</h2>
+                
+                <div className="max-w-2xl mx-auto">
+                    {/* Empty State Card */}
+                    <div className="bg-white p-8 rounded-xl shadow-md text-center border-2 border-dashed border-gray-200">
+                        <div className="mb-6">
+                            <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                <span className="text-4xl">🔒</span>
+                            </div>
+                            <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                                Sign In Required
+                            </h3>
+                            <p className="text-gray-600 mb-6">
+                                Get real-time disaster alerts, earthquake predictions, and cyclone warnings for your location. 
+                                Create an account or sign in to access live disaster monitoring.
+                            </p>
+                        </div>
+
+                        {/* Preview Features */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div className="bg-gray-50 p-4 rounded-lg border">
+                                <div className="flex items-center justify-center mb-2">
+                                    <span className="text-2xl mr-2">🌪️</span>
+                                    <span className="font-medium text-gray-700">Cyclone Alerts</span>
+                                </div>
+                                <p className="text-sm text-gray-500">Real-time wind speed & pressure monitoring</p>
+                            </div>
+                            <div className="bg-gray-50 p-4 rounded-lg border">
+                                <div className="flex items-center justify-center mb-2">
+                                    <span className="text-2xl mr-2">🌍</span>
+                                    <span className="font-medium text-gray-700">Earthquake Predictions</span>
+                                </div>
+                                <p className="text-sm text-gray-500">AI-powered magnitude & timing forecasts</p>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                            <button
+                                onClick={() => navigate('/signup')}
+                                className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-md"
+                            >
+                                Create Account
+                            </button>
+                            <button
+                                onClick={() => navigate('/login')}
+                                className="px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg border-2 border-blue-600 hover:bg-blue-50 transition-colors"
+                            >
+                                Sign In
+                            </button>
+                        </div>
+
+                        <p className="text-xs text-gray-500 mt-4">
+                            Free account • Instant access • Location-based alerts
+                        </p>
+                    </div>
+                </div>
+            </section>
+        );
+    }
 
     if (isLoading) {
         return (
