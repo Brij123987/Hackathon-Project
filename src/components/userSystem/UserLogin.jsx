@@ -11,6 +11,7 @@ function UserLogin() {
 
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
+    const [apiConnectionError, setApiConnectionError] = useState(false);
     const navigate = useNavigate();
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -23,10 +24,42 @@ function UserLogin() {
         });
     };
 
+    // Check API connection
+    const checkApiConnection = async () => {
+        if (!API_BASE_URL) {
+            setApiConnectionError(true);
+            setMessage("❌ API configuration is missing. Please check your environment variables.");
+            return false;
+        }
+
+        try {
+            // Simple health check
+            const response = await fetch(`${API_BASE_URL}/`, {
+                method: 'HEAD',
+                timeout: 5000
+            });
+            setApiConnectionError(false);
+            return true;
+        } catch (err) {
+            console.error('API connection check failed:', err);
+            setApiConnectionError(true);
+            setMessage(`❌ Cannot connect to the backend server at ${API_BASE_URL}. Please ensure the API server is running.`);
+            return false;
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setMessage("");
+        setApiConnectionError(false);
+
+        // Check API connection first
+        const isConnected = await checkApiConnection();
+        if (!isConnected) {
+            setLoading(false);
+            return;
+        }
 
         try {
             const response = await axios.post(
@@ -60,19 +93,25 @@ function UserLogin() {
         } catch (error) {
             console.error("Login error:", error);
             
-            if (error.code === 'ECONNABORTED') {
+            if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
                 setMessage("❌ Request timeout. Please check your connection and try again.");
+            } else if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
+                setApiConnectionError(true);
+                setMessage(`❌ Cannot connect to the backend server. Please check if the API server is running at ${API_BASE_URL}`);
             } else if (error.response) {
                 const { status } = error.response;
                 if (status === 401) {
                     setMessage("❌ Invalid username or password.");
+                } else if (status === 404) {
+                    setMessage("❌ Login endpoint not found. Please check the API configuration.");
                 } else if (status >= 500) {
                     setMessage("❌ Server error. Please try again later.");
                 } else {
                     setMessage("❌ Login failed. Please try again.");
                 }
             } else if (error.request) {
-                setMessage("❌ Network error. Please check your connection.");
+                setApiConnectionError(true);
+                setMessage("❌ Network error. Please check your connection and ensure the backend server is running.");
             } else {
                 setMessage("❌ An unexpected error occurred.");
             }
@@ -89,6 +128,27 @@ function UserLogin() {
                         Sign in to your account
                     </h2>
                 </div>
+
+                {/* API Connection Status */}
+                {apiConnectionError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                                <span className="text-2xl">🚫</span>
+                            </div>
+                            <div className="ml-3">
+                                <h3 className="text-sm font-medium text-red-800">
+                                    Backend Server Not Available
+                                </h3>
+                                <div className="mt-2 text-sm text-red-700">
+                                    <p>Cannot connect to: <code className="bg-red-100 px-1 rounded">{API_BASE_URL}</code></p>
+                                    <p className="mt-1">Please ensure the backend server is running and accessible.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="mt-8 space-y-6">
                     <div className="space-y-4">
                         <div>
@@ -141,7 +201,7 @@ function UserLogin() {
                     <div>
                         <button
                             type="submit"
-                            disabled={loading}
+                            disabled={loading || apiConnectionError}
                             className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? (

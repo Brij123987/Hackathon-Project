@@ -23,6 +23,7 @@ function LiveAlerts() {
     const [error, setError] = useState('');
     const [earthquakeError, setEarthquakeError] = useState('');
     const [cycloneError, setCycloneError] = useState('');
+    const [apiConnectionError, setApiConnectionError] = useState(false);
 
     // Check authentication status
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -41,6 +42,30 @@ function LiveAlerts() {
         setIsAuthenticated(!!token);
     }, []);
 
+    // Check API connection
+    const checkApiConnection = useCallback(async () => {
+        if (!API_BASE_URL) {
+            setApiConnectionError(true);
+            setError('API configuration is missing. Please check your environment variables.');
+            return false;
+        }
+
+        try {
+            // Simple health check - try to reach the API base URL
+            const response = await fetch(`${API_BASE_URL}/`, {
+                method: 'HEAD',
+                timeout: 5000
+            });
+            setApiConnectionError(false);
+            return true;
+        } catch (err) {
+            console.error('API connection check failed:', err);
+            setApiConnectionError(true);
+            setError('Cannot connect to the backend server. Please ensure the API server is running.');
+            return false;
+        }
+    }, [API_BASE_URL]);
+
     // Prevent rapid successive API calls
     const shouldFetchData = useCallback(() => {
         const now = Date.now();
@@ -49,6 +74,41 @@ function LiveAlerts() {
         
         return timeSinceLastFetch > minInterval;
     }, []);
+
+    // Enhanced error handling function
+    const handleApiError = useCallback((error, context) => {
+        console.error(`${context} error:`, error);
+        
+        if (error.name === 'AbortError') {
+            console.log(`${context} API call was aborted`);
+            return null;
+        }
+
+        if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+            return `Request timeout. The server is taking too long to respond.`;
+        }
+        
+        if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
+            setApiConnectionError(true);
+            return `Cannot connect to the backend server. Please check if the API server is running at ${API_BASE_URL}`;
+        }
+        
+        if (error.response) {
+            const { status } = error.response;
+            switch (status) {
+                case 404:
+                    return `${context} endpoint not found. Please check the API configuration.`;
+                case 500:
+                    return `Server error. Please try again later.`;
+                case 503:
+                    return `Service temporarily unavailable. Please try again later.`;
+                default:
+                    return `${context} failed with status ${status}. Please try again.`;
+            }
+        }
+        
+        return `Unable to load ${context.toLowerCase()} data. Please check your connection and try again.`;
+    }, [API_BASE_URL]);
 
     // Memoize the fetch functions with stable dependencies
     const fetchCycloneData = useCallback(async (signal) => {
@@ -73,14 +133,12 @@ function LiveAlerts() {
             setCyclonePrediction(res.data.data.prediction || '');
             setCycloneError('');
         } catch (err) {
-            if (err.name === 'AbortError') {
-                console.log('Cyclone API call was aborted');
-                return;
+            const errorMessage = handleApiError(err, 'Cyclone data');
+            if (errorMessage) {
+                setCycloneError(errorMessage);
             }
-            console.error("Failed to fetch cyclone data:", err);
-            setCycloneError('Unable to load cyclone data. Please check your connection.');
         }
-    }, [locationData?.city, today, API_BASE_URL, isAuthenticated]);
+    }, [locationData?.city, today, API_BASE_URL, isAuthenticated, handleApiError]);
 
     const fetchEarthquakeData = useCallback(async (signal) => {
         if (!locationData?.city || !isAuthenticated || !API_BASE_URL) return;
@@ -107,27 +165,12 @@ function LiveAlerts() {
             setEarthQuakePrediction(earthQuakePrediction);
             setEarthquakeError('');
         } catch (error) {
-            if (error.name === 'AbortError') {
-                console.log('Earthquake API call was aborted');
-                return;
-            }
-            console.error('Error in Fetching Earthquake Prediction', error);
-            
-            if (error.code === 'ECONNABORTED') {
-                setEarthquakeError('Request timeout. The server is taking too long to respond.');
-            } else if (error.code === 'ERR_NETWORK') {
-                setEarthquakeError('Network error. Please check if the backend server is running and accessible.');
-            } else if (error.response?.status === 404) {
-                setEarthquakeError('Earthquake data service not found.');
-            } else if (error.response?.status >= 500) {
-                setEarthquakeError('Server error. Please try again later.');
-            } else if (!API_BASE_URL) {
-                setEarthquakeError('API configuration missing. Please check environment variables.');
-            } else {
-                setEarthquakeError('Unable to load earthquake data. Please try again later.');
+            const errorMessage = handleApiError(error, 'Earthquake prediction');
+            if (errorMessage) {
+                setEarthquakeError(errorMessage);
             }
         }
-    }, [locationData?.city, API_BASE_URL, isAuthenticated]);
+    }, [locationData?.city, API_BASE_URL, isAuthenticated, handleApiError]);
 
     const fetchCyclonePrediction = useCallback(async (signal) => {
         if (!locationData?.city || !isAuthenticated || !API_BASE_URL) return;
@@ -146,19 +189,23 @@ function LiveAlerts() {
             setCyclonePrediction(cyclonePrediction);
             setCycloneError('');
         } catch (error) {
-            if (error.name === 'AbortError') {
-                console.log('Cyclone prediction API call was aborted');
-                return;
+            const errorMessage = handleApiError(error, 'Cyclone prediction');
+            if (errorMessage) {
+                setCycloneError(errorMessage);
             }
-            console.log("Error in Getting Cyclone Prediction", error);
-            setCycloneError('Unable to load cyclone prediction data.');
         }
-    }, [locationData?.city, today, API_BASE_URL, isAuthenticated]);
+    }, [locationData?.city, today, API_BASE_URL, isAuthenticated, handleApiError]);
 
     // Function to refresh all data with abort controller
     const refreshData = useCallback(async () => {
         if (!isAuthenticated || !locationData?.city || !shouldFetchData()) {
             console.log('Skipping data fetch - conditions not met or too soon');
+            return;
+        }
+        
+        // Check API connection first
+        const isConnected = await checkApiConnection();
+        if (!isConnected) {
             return;
         }
         
@@ -172,6 +219,7 @@ function LiveAlerts() {
         const signal = abortControllerRef.current.signal;
         
         setDataLoading(true);
+        setError('');
         lastFetchTimeRef.current = Date.now();
         
         try {
@@ -185,7 +233,7 @@ function LiveAlerts() {
         } finally {
             setDataLoading(false);
         }
-    }, [isAuthenticated, locationData?.city, shouldFetchData, fetchCycloneData, fetchEarthquakeData, fetchCyclonePrediction]);
+    }, [isAuthenticated, locationData?.city, shouldFetchData, checkApiConnection, fetchCycloneData, fetchEarthquakeData, fetchCyclonePrediction]);
 
     // Single effect for initial data loading - only run once when conditions are met
     useEffect(() => {
@@ -202,7 +250,6 @@ function LiveAlerts() {
 
         console.log('Initial data load triggered for:', locationData.city);
         
-        setError('');
         setCycloneError('');
         setEarthquakeError('');
 
@@ -221,7 +268,7 @@ function LiveAlerts() {
 
     // Auto-refresh data every 5 minutes - separate from initial load
     useEffect(() => {
-        if (!isAuthenticated || !locationData?.city || isInitialLoadRef.current) {
+        if (!isAuthenticated || !locationData?.city || isInitialLoadRef.current || apiConnectionError) {
             return;
         }
 
@@ -235,7 +282,7 @@ function LiveAlerts() {
             console.log('Clearing auto-refresh interval');
             clearInterval(interval);
         };
-    }, [isAuthenticated, locationData?.city, refreshData]);
+    }, [isAuthenticated, locationData?.city, refreshData, apiConnectionError]);
 
     // Effect for time difference calculation
     useEffect(() => {
@@ -391,11 +438,38 @@ function LiveAlerts() {
         <section id="alerts" className="py-16 px-6 md:px-20 bg-blue-50">
             <h2 className="text-3xl font-bold mb-8 text-center">Live Disaster Alerts</h2>
             
+            {/* API Connection Error */}
+            {apiConnectionError && (
+                <div className="max-w-2xl mx-auto mb-6">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                                <span className="text-2xl">🚫</span>
+                            </div>
+                            <div className="ml-3">
+                                <h3 className="text-sm font-medium text-red-800">
+                                    Backend Server Not Available
+                                </h3>
+                                <div className="mt-2 text-sm text-red-700">
+                                    <p>Cannot connect to the API server at <code className="bg-red-100 px-1 rounded">{API_BASE_URL}</code></p>
+                                    <p className="mt-1">Please ensure:</p>
+                                    <ul className="list-disc list-inside mt-1 space-y-1">
+                                        <li>The backend server is running</li>
+                                        <li>The API URL is correct in your .env file</li>
+                                        <li>There are no firewall or network issues</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Refresh Button */}
             <div className="flex justify-center mb-4">
                 <button
                     onClick={refreshData}
-                    disabled={dataLoading}
+                    disabled={dataLoading || apiConnectionError}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
                 >
                     {dataLoading ? (
@@ -422,7 +496,10 @@ function LiveAlerts() {
                         <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto"></div>
                     </div>
                 ) : cycloneError ? (
-                    <p className="text-red-600">⚠️ {cycloneError}</p>
+                    <div className="text-red-600">
+                        <p className="font-semibold">⚠️ Cyclone Data Unavailable</p>
+                        <p className="text-sm mt-1">{cycloneError}</p>
+                    </div>
                 ) : (
                     <>
                         <p className="text-lg font-semibold">
@@ -463,11 +540,13 @@ function LiveAlerts() {
             </div>
 
             {/* Auto-refresh indicator */}
-            <div className="text-center mt-4">
-                <p className="text-xs text-gray-500">
-                    🔄 Data automatically refreshes every 5 minutes
-                </p>
-            </div>
+            {!apiConnectionError && (
+                <div className="text-center mt-4">
+                    <p className="text-xs text-gray-500">
+                        🔄 Data automatically refreshes every 5 minutes
+                    </p>
+                </div>
+            )}
         </section>
     );
 }
