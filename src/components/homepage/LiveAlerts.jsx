@@ -19,6 +19,8 @@ function LiveAlerts() {
 
     const [dataLoading, setDataLoading] = useState(false);
     const [error, setError] = useState('');
+    const [earthquakeError, setEarthquakeError] = useState('');
+    const [cycloneError, setCycloneError] = useState('');
 
     const today = new Date().toISOString().split("T")[0];
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -28,6 +30,7 @@ function LiveAlerts() {
         
         setDataLoading(true);
         setError('');
+        setCycloneError('');
     
         const fetchCycloneData = async () => {
             try {
@@ -46,7 +49,7 @@ function LiveAlerts() {
                 setCyclonePrediction(res.data.data.prediction || '');
             } catch (err) {
                 console.error("Failed to fetch cyclone data:", err);
-                setError('Failed to load cyclone data');
+                setCycloneError('Unable to load cyclone data. Please check your connection.');
             }
         };
 
@@ -80,11 +83,23 @@ function LiveAlerts() {
     useEffect(() => {
         if (isLoading || !locationData?.city) return;
 
+        setEarthquakeError('');
+
         const fetchEarthquakeData = async () => {
             try {
+                // Check if API_BASE_URL is defined
+                if (!API_BASE_URL) {
+                    throw new Error('API base URL is not configured');
+                }
+
                 const res = await axios.get(
                     `${API_BASE_URL}/feature/get_location_earthquake_historical_data/?location=${locationData.city}`,
-                    { timeout: 10000 }
+                    { 
+                        timeout: 15000,
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    }
                 );
                 
                 const predictedMagnitude = res.data.data.predict_next_earthquake.PredictedMagnitude;
@@ -96,7 +111,21 @@ function LiveAlerts() {
                 setEarthQuakePrediction(earthQuakePrediction);
             } catch (error) {
                 console.error('Error in Fetching Earthquake Prediction', error);
-                setError('Failed to load earthquake data');
+                
+                // Provide more specific error messages
+                if (error.code === 'ECONNABORTED') {
+                    setEarthquakeError('Request timeout. The server is taking too long to respond.');
+                } else if (error.code === 'ERR_NETWORK') {
+                    setEarthquakeError('Network error. Please check if the backend server is running and accessible.');
+                } else if (error.response?.status === 404) {
+                    setEarthquakeError('Earthquake data service not found.');
+                } else if (error.response?.status >= 500) {
+                    setEarthquakeError('Server error. Please try again later.');
+                } else if (!API_BASE_URL) {
+                    setEarthquakeError('API configuration missing. Please check environment variables.');
+                } else {
+                    setEarthquakeError('Unable to load earthquake data. Please try again later.');
+                }
             }
         };
 
@@ -117,6 +146,7 @@ function LiveAlerts() {
                 setCyclonePrediction(cyclonePrediction);
             } catch (error) {
                 console.log("Error in Getting Cyclone Prediction", error);
+                setCycloneError('Unable to load cyclone prediction data.');
             } finally {
                 setDataLoading(false);
             }
@@ -139,20 +169,15 @@ function LiveAlerts() {
         );
     }
 
-    if (error) {
-        return (
-            <section id="alerts" className="py-16 px-6 md:px-20 bg-blue-50">
-                <h2 className="text-3xl font-bold mb-8 text-center">Live Disaster Alerts</h2>
-                <div className="bg-white p-6 rounded-xl shadow-md text-center">
-                    <p className="text-red-600">⚠️ {error}</p>
-                </div>
-            </section>
-        );
-    }
-
     let warningMessage = null;
 
-    if (earthQuakePrediction === "Low") {
+    if (earthquakeError) {
+        warningMessage = (
+            <p className="text-lg font-semibold text-red-600">
+                ⚠️ {earthquakeError}
+            </p>
+        );
+    } else if (earthQuakePrediction === "Low") {
         warningMessage = (
             <p className="text-lg font-semibold text-green-600">
                 ✅ EarthQuake Risk is Low near {locationData?.city}
@@ -183,6 +208,8 @@ function LiveAlerts() {
                         <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
                         <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto"></div>
                     </div>
+                ) : cycloneError ? (
+                    <p className="text-red-600">⚠️ {cycloneError}</p>
                 ) : (
                     <>
                         <p className="text-lg font-semibold">
@@ -211,11 +238,13 @@ function LiveAlerts() {
                 ) : (
                     <>
                         {warningMessage}
-                        <p className="text-sm text-gray-600 mt-2">
-                            Predicted Magnitude: {predictedMagnitude || "Loading..."} | 
-                            Expected In Hours: {expectedInHours || "Loading..."} | 
-                            EarthQuake Prediction: {earthQuakePrediction || "Loading..."}
-                        </p>
+                        {!earthquakeError && (
+                            <p className="text-sm text-gray-600 mt-2">
+                                Predicted Magnitude: {predictedMagnitude || "Loading..."} | 
+                                Expected In Hours: {expectedInHours || "Loading..."} | 
+                                EarthQuake Prediction: {earthQuakePrediction || "Loading..."}
+                            </p>
+                        )}
                     </>
                 )}
             </div>
