@@ -84,10 +84,7 @@ function UserRegistration() {
 
         } catch (err) {
             console.error('Registration error:', err);
-            
-            if (err.code === 'ECONNABORTED') {
-                setMessage("❌ Request timeout. Please check your connection and try again.");
-            } else if (err.response) {
+            if (err.response) {
                 // Server responded with error
                 const { status, data } = err.response;
                 
@@ -108,9 +105,7 @@ function UserRegistration() {
                     }
                     
                     setMessage(errorMessage);
-                } else if (status === 409) {
-                    setMessage("❌ Username or email already exists. Please choose different ones.");
-                } else if (status >= 500) {
+                }else if (status >= 500) {
                     setMessage("❌ Server error. Please try again later.");
                 } else {
                     setMessage(`❌ Registration failed. Error: ${status}`);

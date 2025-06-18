@@ -91,28 +91,18 @@ function UserLogin() {
 
         } catch (error) {
             console.error("Login error:", error);
-            
-            if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
-                setMessage("❌ Request timeout. Please check your connection and try again.");
-            } else if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
-                setApiConnectionError(true);
-                setMessage(`❌ Cannot connect to the backend server. Please check if the API server is running at ${API_BASE_URL}`);
-            } else if (error.response) {
-                const { status } = error.response;
-                if (status === 401) {
-                    setMessage("❌ Invalid username or password.");
-                } else if (status === 404) {
-                    setMessage("❌ Login endpoint not found. Please check the API configuration.");
-                } else if (status >= 500) {
-                    setMessage("❌ Server error. Please try again later.");
-                } else {
-                    setMessage("❌ Login failed. Please try again.");
-                }
-            } else if (error.request) {
-                setApiConnectionError(true);
-                setMessage("❌ Network error. Please check your connection and ensure the backend server is running.");
+        if (error.response) {
+            const { status } = error.response;
+            if (status === 401) {
+                setMessage("❌ Invalid username or password.");
+            } 
+            else if (status >= 500) {
+                setMessage("❌ Server error. Please try again later.");
             } else {
-                setMessage("❌ An unexpected error occurred.");
+                setMessage("❌ Login failed. Please try again.");
+            }
+            } else {
+            setMessage("❌ Network error. Please check your internet connection.");
             }
         } finally {
             setLoading(false);
