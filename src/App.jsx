@@ -10,34 +10,36 @@ import GraphView from './components/graphDataView/GraphView'; // Create this com
 import UserRegistration from './components/userSystem/UserRegistration';
 import UserLogin from './components/userSystem/UserLogin';
 import { LocationProvider } from './components/userSystem/LocationContext';
-
+import { AuthProvider } from './components/userSystem/AuthContext';
 
 import './App.css';
 
 function App() {
   return (
     <Router>
-      <div className="appContainer">
-        <Header>
-          <Logo />
-          <DropDownPanel />
-        </Header>
+      <AuthProvider>
+        <div className="appContainer">
+          <Header>
+            <Logo />
+            <DropDownPanel />
+          </Header>
 
-        <div className="content">
-          
-          <LocationProvider>
-            <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/graphs" element={<GraphView location="Unknown" />} />
-                <Route path="/signup" element={< UserRegistration />} />
-                <Route path="/login" element={<UserLogin /> } />
-            </Routes>
-          </LocationProvider>
+          <div className="content">
+            
+            <LocationProvider>
+              <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/graphs" element={<GraphView location="Unknown" />} />
+                  <Route path="/signup" element={< UserRegistration />} />
+                  <Route path="/login" element={<UserLogin /> } />
+              </Routes>
+            </LocationProvider>
 
+          </div>
+
+          <Footer />
         </div>
-
-        <Footer />
-      </div>
+      </AuthProvider>
     </Router>
   );
 }

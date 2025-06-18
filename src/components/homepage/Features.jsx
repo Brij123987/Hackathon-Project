@@ -1,15 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useAuth } from "../userSystem/AuthContext";
 
 function Features () {
     const navigate = useNavigate();
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-    // Check authentication status
-    useEffect(() => {
-        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-        setIsAuthenticated(!!token);
-    }, []);
+    const { isAuthenticated } = useAuth();
 
     const handleTrackDisasters = () => {
         if (!isAuthenticated) {

@@ -3,18 +3,13 @@ import { useNavigate } from "react-router-dom";
 import EarthquakeLineChart from "./EarthquakeLineChart";
 import CycloneLineChart from "./CycloneLineChart";
 import { useLocationContext } from "../userSystem/LocationContext";
+import { useAuth } from "../userSystem/AuthContext";
 
 const GraphView = ({ location }) => {
   const [activeTab, setActiveTab] = useState("earthquake");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated } = useAuth();
   const { locationData } = useLocationContext();
   const navigate = useNavigate();
-
-  // Check authentication status
-  useEffect(() => {
-    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-    setIsAuthenticated(!!token);
-  }, []);
 
   // Empty state for unauthenticated users
   if (!isAuthenticated) {

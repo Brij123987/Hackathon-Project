@@ -2,10 +2,12 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import axios from "axios";
 import { useLocationContext } from "../userSystem/LocationContext";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../userSystem/AuthContext";
 
 function LiveAlerts() {
     const { locationData, isLoading } = useLocationContext();
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
 
     const [windSpeed, setWindSpeed] = useState(null);
     const [windPressure, setWindPressure] = useState(null);
@@ -25,9 +27,6 @@ function LiveAlerts() {
     const [cycloneError, setCycloneError] = useState('');
     const [apiConnectionError, setApiConnectionError] = useState(false);
 
-    // Check authentication status
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-
     // Use refs to prevent multiple API calls
     const isInitialLoadRef = useRef(true);
     const lastFetchTimeRef = useRef(0);
@@ -35,12 +34,6 @@ function LiveAlerts() {
 
     const today = useMemo(() => new Date().toISOString().split("T")[0], []);
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
-    // Check if user is authenticated - only run once
-    useEffect(() => {
-        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-        setIsAuthenticated(!!token);
-    }, []);
 
     // Check API connection
     const checkApiConnection = useCallback(async () => {

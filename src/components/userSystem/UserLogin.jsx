@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./AuthContext";
 
 function UserLogin() {
     const [formData, setFormData] = useState({
@@ -13,6 +14,7 @@ function UserLogin() {
     const [message, setMessage] = useState("");
     const [apiConnectionError, setApiConnectionError] = useState(false);
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -78,11 +80,8 @@ function UserLogin() {
 
             const token = response.data.access_token;
 
-            if (formData.rememberMe) {
-                localStorage.setItem("authToken", token);
-            } else {
-                sessionStorage.setItem("authToken", token);
-            }
+            // Use the auth context login method
+            login(token, formData.rememberMe);
 
             setMessage("✅ Logged in successfully!");
             

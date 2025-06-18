@@ -1,22 +1,10 @@
 import './DropDownPanel.css';
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useAuth } from '../userSystem/AuthContext';
 
 function DropDownPanel({ onClose }) {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [username, setUsername] = useState('');
-
-  useEffect(() => {
-    // Check authentication status
-    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-    if (token) {
-      setIsAuthenticated(true);
-      // You can decode the token to get username if needed
-      // For now, we'll use a placeholder
-      setUsername('User');
-    }
-  }, []);
+  const { isAuthenticated, user, logout } = useAuth();
 
   const handleNavigation = (path) => {
     navigate(path);
@@ -25,10 +13,7 @@ function DropDownPanel({ onClose }) {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    sessionStorage.removeItem('authToken');
-    setIsAuthenticated(false);
-    setUsername('');
+    logout();
     navigate('/');
     // Close the menu after logout
     if (onClose) onClose();
@@ -54,7 +39,7 @@ function DropDownPanel({ onClose }) {
 
   const authItems = isAuthenticated 
     ? [
-        { label: `Welcome, ${username}`, icon: '👤', action: null, show: true, isWelcome: true },
+        { label: `Welcome, User`, icon: '👤', action: null, show: true, isWelcome: true },
         { label: 'Dashboard', icon: '📊', path: '/dashboard', show: true },
         { label: 'Logout', icon: '🚪', action: handleLogout, show: true, isLogout: true },
       ]
