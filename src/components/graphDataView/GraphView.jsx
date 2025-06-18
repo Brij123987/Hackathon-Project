@@ -37,9 +37,9 @@ const GraphView = ({ location }) => {
 
       {/* Full-width chart below header block */}
       {activeTab === "earthquake" ? (
-        <EarthquakeLineChart location={locationData.city} />
+        <EarthquakeLineChart location={locationData?.city || location} />
       ) : (
-        <CycloneLineChart location={locationData.city} />
+        <CycloneLineChart location={locationData?.city || location} />
       )}
     </>
   );
