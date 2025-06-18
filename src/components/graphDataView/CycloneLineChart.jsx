@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import { Line } from "react-chartjs-2";
 import {
@@ -35,64 +35,75 @@ const CycloneLineChart = ({ location }) => {
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-  useEffect(() => {
+  // Memoize the API call to prevent unnecessary re-renders
+  const fetchCycloneData = useCallback(async () => {
+    if (!location || !API_BASE_URL) return;
+    
     setLoading(true);
     setError("");
 
-    axios
-      .get(`${API_BASE_URL}/feature/get_cyclone_data_json/?location=${location}`)
-      .then((res) => {
-        const sorted = res.data.data.sort((a, b) => new Date(a.Date) - new Date(b.Date));
-        const reversed = [...sorted].reverse();
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/feature/get_cyclone_data_json/?location=${location}`,
+        { timeout: 15000 }
+      );
+      
+      const sorted = res.data.data.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+      const reversed = [...sorted].reverse();
 
-        const labels = sorted.map((item) => item.Date);
-        const windSpeeds = sorted.map((item) => item.windSpeed);
-        const windPressures = sorted.map((item) => item.windPressure);
+      const labels = sorted.map((item) => item.Date);
+      const windSpeeds = sorted.map((item) => item.windSpeed);
+      const windPressures = sorted.map((item) => item.windPressure);
 
-        setChartData({
-          labels,
-          datasets: [
-            {
-              label: `Wind Speed (km/h) in ${location}`,
-              data: windSpeeds,
-              borderColor: "#10b981",
-              backgroundColor: "#10b981",
-              tension: 0.4,
-              yAxisID: "y1",
-            },
-            {
-              label: `Wind Pressure (hPa)`,
-              data: windPressures,
-              borderColor: "#3b82f6",
-              backgroundColor: "#3b82f6",
-              tension: 0.4,
-              yAxisID: "y2",
-            },
-          ],
-        });
-
-        setTableData(reversed);
-        setCurrentPage(1);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Failed to fetch cyclone data:", error);
-        setError("Failed to load cyclone data. Please try again later.");
-        setLoading(false);
+      setChartData({
+        labels,
+        datasets: [
+          {
+            label: `Wind Speed (km/h) in ${location}`,
+            data: windSpeeds,
+            borderColor: "#10b981",
+            backgroundColor: "#10b981",
+            tension: 0.4,
+            yAxisID: "y1",
+          },
+          {
+            label: `Wind Pressure (hPa)`,
+            data: windPressures,
+            borderColor: "#3b82f6",
+            backgroundColor: "#3b82f6",
+            tension: 0.4,
+            yAxisID: "y2",
+          },
+        ],
       });
+
+      setTableData(reversed);
+      setCurrentPage(1);
+    } catch (error) {
+      console.error("Failed to fetch cyclone data:", error);
+      setError("Failed to load cyclone data. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
   }, [location, API_BASE_URL]);
 
-  const totalPages = Math.ceil(tableData.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const currentData = tableData.slice(startIndex, startIndex + rowsPerPage);
+  useEffect(() => {
+    fetchCycloneData();
+  }, [fetchCycloneData]);
+
+  const totalPages = useMemo(() => Math.ceil(tableData.length / rowsPerPage), [tableData.length]);
+  const currentData = useMemo(() => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    return tableData.slice(startIndex, startIndex + rowsPerPage);
+  }, [tableData, currentPage]);
 
   // Format date for mobile display (shorter format)
-  const formatDateForMobile = (dateString) => {
+  const formatDateForMobile = useCallback((dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-  };
+  }, []);
 
-  const exportToCSV = () => {
+  const exportToCSV = useCallback(() => {
     const headers = ["Date", "Latitude", "Longitude", "Wind Pressure", "Wind Speed"];
     const rows = tableData.map(item => [
       item.Date, item.Latitude, item.Longitude, item.windPressure, item.windSpeed
@@ -109,9 +120,10 @@ const CycloneLineChart = ({ location }) => {
     link.href = url;
     link.download = `cyclone_data_${location}.csv`;
     link.click();
-  };
+    URL.revokeObjectURL(url);
+  }, [tableData, location]);
 
-  const exportToPDF = () => {
+  const exportToPDF = useCallback(() => {
     const doc = new jsPDF();
     doc.text(`Cyclone Data - ${location}`, 14, 15);
     autoTable(doc, {
@@ -123,7 +135,7 @@ const CycloneLineChart = ({ location }) => {
       styles: { fontSize: 8 }
     });
     doc.save(`cyclone_data_${location}.pdf`);
-  };
+  }, [tableData, location]);
 
   if (loading) {
     return (

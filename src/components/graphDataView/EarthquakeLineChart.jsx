@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { Line } from "react-chartjs-2";
 import {
@@ -27,52 +27,63 @@ const EarthquakeLineChart = ({ location }) => {
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-  useEffect(() => {
+  // Memoize the API call to prevent unnecessary re-renders
+  const fetchEarthquakeData = useCallback(async () => {
+    if (!location || !API_BASE_URL) return;
+    
     setLoading(true);
     setError('');
-    axios.get(`${API_BASE_URL}/feature/get_earthquake_data_json/?location=${location}`)
-      .then((res) => {
-        const sorted = res.data.data.sort((a, b) => new Date(a.DateTime) - new Date(b.DateTime));
-        const reversed = [...sorted].reverse();
+    
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/feature/get_earthquake_data_json/?location=${location}`,
+        { timeout: 15000 }
+      );
+      
+      const sorted = res.data.data.sort((a, b) => new Date(a.DateTime) - new Date(b.DateTime));
+      const reversed = [...sorted].reverse();
 
-        const labels = reversed.map(item => item.DateTime);
-        const magnitudes = reversed.map(item => item.Magnitude);
+      const labels = reversed.map(item => item.DateTime);
+      const magnitudes = reversed.map(item => item.Magnitude);
 
-        setChartData({
-          labels,
-          datasets: [
-            {
-              label: `Earthquake Magnitude in ${location}`,
-              data: magnitudes,
-              borderColor: "#ef4444",
-              backgroundColor: "rgba(239, 68, 68, 0.1)",
-              fill: true,
-              tension: 0.4,
-              borderWidth: 3,
-              pointRadius: 4,
-              pointHoverRadius: 6,
-              pointBackgroundColor: "#ef4444",
-              pointBorderColor: "#ffffff",
-              pointBorderWidth: 2,
-              pointHoverBackgroundColor: "#dc2626",
-              pointHoverBorderColor: "#ffffff",
-              pointHoverBorderWidth: 3
-            }
-          ]
-        });
-
-        setTableData(reversed);
-        setCurrentPage(1);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError("Failed to load earthquake data. Please try again later.");
-        setLoading(false);
-        console.error(err);
+      setChartData({
+        labels,
+        datasets: [
+          {
+            label: `Earthquake Magnitude in ${location}`,
+            data: magnitudes,
+            borderColor: "#ef4444",
+            backgroundColor: "rgba(239, 68, 68, 0.1)",
+            fill: true,
+            tension: 0.4,
+            borderWidth: 3,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: "#ef4444",
+            pointBorderColor: "#ffffff",
+            pointBorderWidth: 2,
+            pointHoverBackgroundColor: "#dc2626",
+            pointHoverBorderColor: "#ffffff",
+            pointHoverBorderWidth: 3
+          }
+        ]
       });
+
+      setTableData(reversed);
+      setCurrentPage(1);
+    } catch (err) {
+      setError("Failed to load earthquake data. Please try again later.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, [location, API_BASE_URL]);
 
-  const exportToCSV = () => {
+  useEffect(() => {
+    fetchEarthquakeData();
+  }, [fetchEarthquakeData]);
+
+  const exportToCSV = useCallback(() => {
     const headers = ['DateTime', 'Latitude', 'Longitude', 'Magnitude', 'Depth', 'AfterShock Risk'];
     const rows = tableData.map(item => [
       item.DateTime, item.Latitude, item.Longitude, item.Magnitude, item.Depth, item.AfterShock_Risk
@@ -89,9 +100,10 @@ const EarthquakeLineChart = ({ location }) => {
     link.href = url;
     link.download = `earthquake_data_${location}.csv`;
     link.click();
-  };
+    URL.revokeObjectURL(url);
+  }, [tableData, location]);
 
-  const exportToPDF = () => {
+  const exportToPDF = useCallback(() => {
     const doc = new jsPDF();
     doc.text(`Earthquake Data - ${location}`, 14, 15);
     autoTable(doc, {
@@ -103,17 +115,33 @@ const EarthquakeLineChart = ({ location }) => {
       styles: { fontSize: 8 }
     });
     doc.save(`earthquake_data_${location}.pdf`);
-  };
+  }, [tableData, location]);
 
-  const totalPages = Math.ceil(tableData.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const currentData = tableData.slice(startIndex, startIndex + rowsPerPage);
+  const totalPages = useMemo(() => Math.ceil(tableData.length / rowsPerPage), [tableData.length]);
+  const currentData = useMemo(() => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    return tableData.slice(startIndex, startIndex + rowsPerPage);
+  }, [tableData, currentPage]);
 
   // Format date for mobile display (shorter format)
-  const formatDateForMobile = (dateTime) => {
+  const formatDateForMobile = useCallback((dateTime) => {
     const date = new Date(dateTime);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-  };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-32">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center text-red-600 font-semibold">{error}</div>
+    );
+  }
 
   return (
     <div>

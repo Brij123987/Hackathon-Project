@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
+import React, { createContext, useState, useContext, useEffect, useCallback } from "react";
 
 // Create Context
 const LocationContext = createContext();
@@ -8,30 +8,7 @@ export const LocationProvider = ({ children }) => {
     const [locationData, setLocationData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Initialize location data on mount
-    useEffect(() => {
-        const initializeLocation = async () => {
-            try {
-                // Check if location data exists in localStorage
-                const savedLocation = localStorage.getItem('userLocation');
-                if (savedLocation) {
-                    setLocationData(JSON.parse(savedLocation));
-                    setIsLoading(false);
-                    return;
-                }
-
-                // If no saved location, try to get current location
-                await getCurrentLocation();
-            } catch (error) {
-                console.error('Error initializing location:', error);
-                setIsLoading(false);
-            }
-        };
-
-        initializeLocation();
-    }, []);
-
-    const getCityFromCoords = async (lat, lon) => {
+    const getCityFromCoords = useCallback(async (lat, lon) => {
         try {
             const res = await fetch(
                 `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`
@@ -43,9 +20,9 @@ export const LocationProvider = ({ children }) => {
             console.error('Error getting city from coordinates:', error);
             return "Unknown";
         }
-    };
+    }, []);
 
-    const getCityFromIP = async () => {
+    const getCityFromIP = useCallback(async () => {
         try {
             const res = await fetch("https://ipapi.co/json/");
             const data = await res.json();
@@ -54,9 +31,9 @@ export const LocationProvider = ({ children }) => {
             console.error('Error getting city from IP:', error);
             return "Unknown";
         }
-    };
+    }, []);
 
-    const getCurrentLocation = async () => {
+    const getCurrentLocation = useCallback(async () => {
         return new Promise((resolve) => {
             if (!navigator.geolocation) {
                 // Fallback to IP-based location
@@ -115,12 +92,36 @@ export const LocationProvider = ({ children }) => {
                 }
             );
         });
-    };
+    }, [getCityFromCoords, getCityFromIP]);
 
-    const updateLocationData = (newLocationData) => {
+    // Initialize location data on mount - only once
+    useEffect(() => {
+        const initializeLocation = async () => {
+            try {
+                // Check if location data exists in localStorage
+                const savedLocation = localStorage.getItem('userLocation');
+                if (savedLocation) {
+                    const parsedLocation = JSON.parse(savedLocation);
+                    setLocationData(parsedLocation);
+                    setIsLoading(false);
+                    return;
+                }
+
+                // If no saved location, try to get current location
+                await getCurrentLocation();
+            } catch (error) {
+                console.error('Error initializing location:', error);
+                setIsLoading(false);
+            }
+        };
+
+        initializeLocation();
+    }, []); // Empty dependency array - only run once on mount
+
+    const updateLocationData = useCallback((newLocationData) => {
         setLocationData(newLocationData);
         localStorage.setItem('userLocation', JSON.stringify(newLocationData));
-    };
+    }, []);
 
     return (
         <LocationContext.Provider value={{ 

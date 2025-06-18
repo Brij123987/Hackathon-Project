@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import { useLocationContext } from "../userSystem/LocationContext";
 
@@ -22,47 +22,128 @@ function LiveAlerts() {
     const [earthquakeError, setEarthquakeError] = useState('');
     const [cycloneError, setCycloneError] = useState('');
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = useMemo(() => new Date().toISOString().split("T")[0], []);
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+    // Memoize the fetch functions to prevent recreation on every render
+    const fetchCycloneData = useCallback(async () => {
+        if (!locationData?.city) return;
+        
+        try {
+            const res = await axios.get(
+                `${API_BASE_URL}/feature/get_cyclone_data/?location=${locationData.city}&end_date=${today}`,
+                { timeout: 10000 }
+            );
+            
+            const wind = res.data.data.cyclone_data.wind.speed;
+            const pressure = res.data.data.cyclone_data.main.pressure;
+            const timestamp = res.data.data.timestamp;
+
+            setWindSpeed((wind * 3.6).toFixed(2));
+            setWindPressure(pressure);
+            setWindTime(Math.floor(timestamp));
+            setCyclonePrediction(res.data.data.prediction || '');
+        } catch (err) {
+            console.error("Failed to fetch cyclone data:", err);
+            setCycloneError('Unable to load cyclone data. Please check your connection.');
+        }
+    }, [locationData?.city, today, API_BASE_URL]);
+
+    const fetchEarthquakeData = useCallback(async () => {
+        if (!locationData?.city) return;
+
+        try {
+            if (!API_BASE_URL) {
+                throw new Error('API base URL is not configured');
+            }
+
+            const res = await axios.get(
+                `${API_BASE_URL}/feature/get_location_earthquake_historical_data/?location=${locationData.city}`,
+                { 
+                    timeout: 15000,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                }
+            );
+            
+            const predictedMagnitude = res.data.data.predict_next_earthquake.PredictedMagnitude;
+            const expectedInHours = res.data.data.predict_next_earthquake.ExpectedInHours;
+            const earthQuakePrediction = res.data.data.predicted_data[0];
+            
+            setPredictedMagnitude(predictedMagnitude);
+            setExpectedInHours(expectedInHours);
+            setEarthQuakePrediction(earthQuakePrediction);
+        } catch (error) {
+            console.error('Error in Fetching Earthquake Prediction', error);
+            
+            if (error.code === 'ECONNABORTED') {
+                setEarthquakeError('Request timeout. The server is taking too long to respond.');
+            } else if (error.code === 'ERR_NETWORK') {
+                setEarthquakeError('Network error. Please check if the backend server is running and accessible.');
+            } else if (error.response?.status === 404) {
+                setEarthquakeError('Earthquake data service not found.');
+            } else if (error.response?.status >= 500) {
+                setEarthquakeError('Server error. Please try again later.');
+            } else if (!API_BASE_URL) {
+                setEarthquakeError('API configuration missing. Please check environment variables.');
+            } else {
+                setEarthquakeError('Unable to load earthquake data. Please try again later.');
+            }
+        }
+    }, [locationData?.city, API_BASE_URL]);
+
+    const fetchCyclonePrediction = useCallback(async () => {
+        if (!locationData?.city) return;
+
+        try {
+            const res = await axios.get(
+                `${API_BASE_URL}/feature/get_cyclone_prediction/?location=${locationData.city}&end_date=${today}`,
+                { timeout: 10000 }
+            );
+            
+            const cyclonePrediction = res.data.data.CyclonePrediction;
+            setCyclonePrediction(cyclonePrediction);
+        } catch (error) {
+            console.log("Error in Getting Cyclone Prediction", error);
+            setCycloneError('Unable to load cyclone prediction data.');
+        }
+    }, [locationData?.city, today, API_BASE_URL]);
+
+    // Single effect for initial data loading
     useEffect(() => {
         if (isLoading || !locationData?.city) return;
         
         setDataLoading(true);
         setError('');
         setCycloneError('');
-    
-        const fetchCycloneData = async () => {
+        setEarthquakeError('');
+
+        const loadAllData = async () => {
             try {
-                const res = await axios.get(
-                    `${API_BASE_URL}/feature/get_cyclone_data/?location=${locationData.city}&end_date=${today}`,
-                    { timeout: 10000 }
-                );
-                
-                const wind = res.data.data.cyclone_data.wind.speed;
-                const pressure = res.data.data.cyclone_data.main.pressure;
-                const timestamp = res.data.data.timestamp;
-    
-                setWindSpeed((wind * 3.6).toFixed(2));
-                setWindPressure(pressure);
-                setWindTime(Math.floor(timestamp));
-                setCyclonePrediction(res.data.data.prediction || '');
-            } catch (err) {
-                console.error("Failed to fetch cyclone data:", err);
-                setCycloneError('Unable to load cyclone data. Please check your connection.');
+                await Promise.allSettled([
+                    fetchCycloneData(),
+                    fetchEarthquakeData(),
+                    fetchCyclonePrediction()
+                ]);
+            } finally {
+                setDataLoading(false);
             }
         };
 
-        fetchCycloneData();
-    }, [locationData, isLoading, today, API_BASE_URL]);
+        loadAllData();
+    }, [isLoading, locationData?.city, fetchCycloneData, fetchEarthquakeData, fetchCyclonePrediction]);
 
+    // Separate effect for time difference calculation
     useEffect(() => {
-        if (windTime) {
+        if (!windTime) return;
+
+        const updateTimeDifference = () => {
             const now = Math.floor(Date.now() / 1000);
             const diffInSeconds = now - windTime;
-    
+
             let display = "";
-    
+
             if (diffInSeconds < 60) {
                 display = `${diffInSeconds} seconds ago`;
             } else if (diffInSeconds < 3600) {
@@ -75,85 +156,17 @@ function LiveAlerts() {
                 const days = Math.floor(diffInSeconds / 86400);
                 display = `${days} day${days !== 1 ? 's' : ''} ago`;
             }
-    
+
             setTimeDifference(display);
-        }
+        };
+
+        updateTimeDifference();
+        
+        // Update every minute instead of every second to reduce CPU usage
+        const interval = setInterval(updateTimeDifference, 60000);
+        
+        return () => clearInterval(interval);
     }, [windTime]);
-
-    useEffect(() => {
-        if (isLoading || !locationData?.city) return;
-
-        setEarthquakeError('');
-
-        const fetchEarthquakeData = async () => {
-            try {
-                // Check if API_BASE_URL is defined
-                if (!API_BASE_URL) {
-                    throw new Error('API base URL is not configured');
-                }
-
-                const res = await axios.get(
-                    `${API_BASE_URL}/feature/get_location_earthquake_historical_data/?location=${locationData.city}`,
-                    { 
-                        timeout: 15000,
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    }
-                );
-                
-                const predictedMagnitude = res.data.data.predict_next_earthquake.PredictedMagnitude;
-                const expectedInHours = res.data.data.predict_next_earthquake.ExpectedInHours;
-                const earthQuakePrediction = res.data.data.predicted_data[0];
-                
-                setPredictedMagnitude(predictedMagnitude);
-                setExpectedInHours(expectedInHours);
-                setEarthQuakePrediction(earthQuakePrediction);
-            } catch (error) {
-                console.error('Error in Fetching Earthquake Prediction', error);
-                
-                // Provide more specific error messages
-                if (error.code === 'ECONNABORTED') {
-                    setEarthquakeError('Request timeout. The server is taking too long to respond.');
-                } else if (error.code === 'ERR_NETWORK') {
-                    setEarthquakeError('Network error. Please check if the backend server is running and accessible.');
-                } else if (error.response?.status === 404) {
-                    setEarthquakeError('Earthquake data service not found.');
-                } else if (error.response?.status >= 500) {
-                    setEarthquakeError('Server error. Please try again later.');
-                } else if (!API_BASE_URL) {
-                    setEarthquakeError('API configuration missing. Please check environment variables.');
-                } else {
-                    setEarthquakeError('Unable to load earthquake data. Please try again later.');
-                }
-            }
-        };
-
-        fetchEarthquakeData();
-    }, [locationData, isLoading, API_BASE_URL]); 
-
-    useEffect(() => {
-        if (isLoading || !locationData?.city) return;
-
-        const fetchCyclonePrediction = async () => {
-            try {
-                const res = await axios.get(
-                    `${API_BASE_URL}/feature/get_cyclone_prediction/?location=${locationData.city}&end_date=${today}`,
-                    { timeout: 10000 }
-                );
-                
-                const cyclonePrediction = res.data.data.CyclonePrediction;
-                setCyclonePrediction(cyclonePrediction);
-            } catch (error) {
-                console.log("Error in Getting Cyclone Prediction", error);
-                setCycloneError('Unable to load cyclone prediction data.');
-            } finally {
-                setDataLoading(false);
-            }
-        };
-
-        fetchCyclonePrediction();
-    }, [locationData, isLoading, today, API_BASE_URL]);
 
     if (isLoading) {
         return (
