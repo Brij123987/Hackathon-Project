@@ -2,7 +2,7 @@ import './DropDownPanel.css';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
-function DropDownPanel() {
+function DropDownPanel({ onClose }) {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
@@ -20,6 +20,8 @@ function DropDownPanel() {
 
   const handleNavigation = (path) => {
     navigate(path);
+    // Close the menu after navigation
+    if (onClose) onClose();
   };
 
   const handleLogout = () => {
@@ -28,6 +30,18 @@ function DropDownPanel() {
     setIsAuthenticated(false);
     setUsername('');
     navigate('/');
+    // Close the menu after logout
+    if (onClose) onClose();
+  };
+
+  const handleMenuItemClick = (action, path) => {
+    if (action) {
+      action();
+    } else if (path) {
+      handleNavigation(path);
+    }
+    // Close menu for any menu item click (including welcome item)
+    if (onClose) onClose();
   };
 
   const menuItems = [
@@ -59,7 +73,7 @@ function DropDownPanel() {
         {menuItems.filter(item => item.show).map((item, index) => (
           <li 
             key={index}
-            onClick={() => handleNavigation(item.path)}
+            onClick={() => handleMenuItemClick(null, item.path)}
             className="menu-item"
           >
             <span className="menu-icon">{item.icon}</span>
@@ -72,7 +86,7 @@ function DropDownPanel() {
         {authItems.filter(item => item.show).map((item, index) => (
           <li 
             key={`auth-${index}`}
-            onClick={item.action ? item.action : () => item.path && handleNavigation(item.path)}
+            onClick={() => handleMenuItemClick(item.action, item.path)}
             className={`menu-item ${item.isWelcome ? 'welcome-item' : ''} ${item.isLogout ? 'logout-item' : ''}`}
           >
             <span className="menu-icon">{item.icon}</span>

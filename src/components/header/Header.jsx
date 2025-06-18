@@ -7,6 +7,7 @@ function Header({ children }) {
   const buttonRef = useRef(null);
 
   const toggleDropdown = () => setIsOpen(!isOpen);
+  const closeDropdown = () => setIsOpen(false);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -72,7 +73,7 @@ function Header({ children }) {
             <div className="menu-line" />
           </div>
         </button>
-        {isOpen && children[1]} {/* DropDownPanel */}
+        {isOpen && React.cloneElement(children[1], { onClose: closeDropdown })}
       </div>
     </header>
   );
