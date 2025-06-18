@@ -12,10 +12,13 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  position: relative; /* Add position relative for z-index context */
 }
 
 .content {
   flex: 1; /* This pushes the footer to the bottom */
+  position: relative; /* Ensure content has proper stacking context */
+  z-index: 1; /* Lower z-index than header dropdown */
 }
 
 /* Prevent layout shift during loading */
@@ -42,4 +45,51 @@ body {
   100% {
     background-position: -200% 0;
   }
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 768px) {
+  .appContainer {
+    /* Ensure proper stacking on mobile */
+    isolation: isolate;
+  }
+  
+  .content {
+    /* Add padding top to account for sticky header on mobile */
+    padding-top: 0;
+    z-index: 1;
+  }
+  
+  /* Prevent horizontal scroll on mobile */
+  body {
+    overflow-x: hidden;
+    position: relative;
+  }
+  
+  /* When dropdown is open, prevent background scroll */
+  body.dropdown-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+  }
+}
+
+/* Form-specific mobile adjustments */
+@media (max-width: 768px) {
+  /* Ensure forms don't get overlapped by dropdown */
+  .min-h-screen {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Add extra spacing for forms on mobile when header is sticky */
+  .min-h-screen.form-container {
+    padding-top: 1rem;
+  }
+}
+
+/* Utility class for preventing dropdown overlap */
+.dropdown-safe-zone {
+  position: relative;
+  z-index: 1;
 }

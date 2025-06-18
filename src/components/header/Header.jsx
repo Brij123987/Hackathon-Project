@@ -27,12 +27,21 @@ function Header({ children }) {
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('touchstart', handleClickOutside);
+      
+      // Prevent body scroll when dropdown is open on mobile
+      if (window.innerWidth <= 768) {
+        document.body.style.overflow = 'hidden';
+      }
+    } else {
+      // Re-enable body scroll when dropdown is closed
+      document.body.style.overflow = '';
     }
 
     // Cleanup event listeners
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
+      document.body.style.overflow = ''; // Ensure scroll is re-enabled on cleanup
     };
   }, [isOpen]);
 
@@ -50,6 +59,22 @@ function Header({ children }) {
 
     return () => {
       document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [isOpen]);
+
+  // Close dropdown on route change (for mobile)
+  useEffect(() => {
+    const handleRouteChange = () => {
+      if (isOpen) {
+        setIsOpen(false);
+      }
+    };
+
+    // Listen for popstate events (back/forward navigation)
+    window.addEventListener('popstate', handleRouteChange);
+
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange);
     };
   }, [isOpen]);
 

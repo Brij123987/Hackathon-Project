@@ -7,12 +7,14 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 20px;
   padding: 0;
-  z-index: 1000;
+  z-index: 9999; /* Increased z-index to ensure it's above all content */
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
   min-width: 300px;
   animation: slideDown 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   overflow: hidden;
   transform-origin: top right;
+  max-height: calc(100vh - 80px); /* Prevent dropdown from going off-screen */
+  overflow-y: auto; /* Add scroll if content is too long */
 }
 
 @keyframes slideDown {
@@ -178,8 +180,13 @@
 @media (max-width: 768px) {
   .dropdown-panel {
     min-width: 280px;
-    right: -10px;
+    right: -5px; /* Adjusted for better mobile positioning */
     border-radius: 16px;
+    top: 50px; /* Reduced top spacing for mobile */
+    max-height: calc(100vh - 70px); /* Adjusted for mobile header height */
+    z-index: 10000; /* Even higher z-index for mobile */
+    /* Add backdrop for mobile to prevent interaction with content behind */
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
   }
   
   .dropdown-header {
@@ -209,8 +216,12 @@
 @media (max-width: 480px) {
   .dropdown-panel {
     min-width: 260px;
-    right: -15px;
+    right: -10px; /* Better positioning for small screens */
     border-radius: 14px;
+    top: 45px; /* Further reduced for smaller screens */
+    max-height: calc(100vh - 60px);
+    /* Full width on very small screens if needed */
+    max-width: calc(100vw - 20px);
   }
   
   .dropdown-header {
@@ -240,7 +251,11 @@
 @media (max-width: 360px) {
   .dropdown-panel {
     min-width: 240px;
-    right: -20px;
+    right: -15px;
+    /* On very small screens, consider full width */
+    width: calc(100vw - 30px);
+    left: 15px;
+    right: 15px;
   }
 }
 
@@ -299,5 +314,20 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Mobile backdrop overlay to prevent interaction with content behind */
+@media (max-width: 768px) {
+  .dropdown-panel::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.1);
+    z-index: -1;
+    pointer-events: none;
   }
 }

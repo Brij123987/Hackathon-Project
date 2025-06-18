@@ -8,6 +8,7 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1000; /* Ensure header has proper z-index */
 }
 
 .menu-button {
@@ -24,6 +25,7 @@
   backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
+  z-index: 10001; /* Ensure menu button is above dropdown */
 }
 
 .menu-button:hover {
@@ -111,12 +113,16 @@
 
 .right {
   position: relative;
+  z-index: 10000; /* Ensure dropdown container has high z-index */
 }
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .header {
     padding: 0.75rem 1rem;
+    position: sticky; /* Make header sticky on mobile */
+    top: 0;
+    z-index: 1000;
   }
   
   .menu-button {
@@ -140,11 +146,18 @@
   .menu-line:nth-child(3) {
     width: 10px;
   }
+
+  .right {
+    z-index: 10001; /* Higher z-index for mobile */
+  }
 }
 
 @media (max-width: 480px) {
   .header {
     padding: 0.5rem 0.75rem;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
   }
   
   .menu-button {
