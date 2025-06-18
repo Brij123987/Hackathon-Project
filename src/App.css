@@ -5,6 +5,7 @@ html,
 body {
   height: 100%;
   margin: 0;
+  overflow-x: hidden;
 }
 
 .appContainer {
@@ -17,4 +18,28 @@ body {
   flex: 1; /* This pushes the footer to the bottom */
 }
 
-/* Optional: style the header or other parts here */
+/* Prevent layout shift during loading */
+.content > * {
+  min-height: 200px;
+}
+
+/* Smooth transitions */
+* {
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* Loading states */
+.loading-skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

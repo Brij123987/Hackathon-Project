@@ -15,77 +15,110 @@ function UserRegistration() {
     const [message, setMessage] = useState("");
     const navigate = useNavigate();
 
-    const { setLocationData } = useLocationContext();
+    const { getCurrentLocation } = useLocationContext();
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const getCityFromCoords = async (lat, lon) => {
-        const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`
-        );
-        const data = await res.json();
-        const address = data.address;
-        return address.city || address.town || address.village || address.state || "Unknown";
-    };
-
-    const getCityFromIP = async () => {
-        const res = await fetch("https://ipapi.co/json/");
-        const data = await res.json();
-        return data.city || data.region || "Unknown";
+    const validateForm = () => {
+        if (formData.password !== formData.confirm_password) {
+            setMessage("❌ Passwords do not match");
+            return false;
+        }
+        if (formData.password.length < 6) {
+            setMessage("❌ Password must be at least 6 characters long");
+            return false;
+        }
+        if (!formData.email.includes('@')) {
+            setMessage("❌ Please enter a valid email address");
+            return false;
+        }
+        if (formData.username.length < 3) {
+            setMessage("❌ Username must be at least 3 characters long");
+            return false;
+        }
+        return true;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
+        
+        if (!validateForm()) {
+            return;
+        }
 
-        let locationData = {
-            city: "Unknown",
-        };
+        setLoading(true);
+        setMessage("");
 
         try {
-            // Try to get city from geolocation or fallback to IP
-            await new Promise((resolve) => {
-                navigator.geolocation.getCurrentPosition(
-                    async (position) => {
-                        const { latitude, longitude } = position.coords;
-                        const city = await getCityFromCoords(latitude, longitude);
-                        locationData = { lat: latitude, lon: longitude, city };
-                        resolve();
-                    },
-                    async () => {
-                        const city = await getCityFromIP();
-                        locationData = { city, fallback: true };
-                        resolve();
-                    },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-                );
-            });
+            // Get location data
+            await getCurrentLocation();
 
-            const fullData = {
-                ...formData,
-                // Uncomment if you want to send location:
-                // location: locationData,
+            // Prepare registration data
+            const registrationData = {
+                username: formData.username.trim(),
+                email: formData.email.trim().toLowerCase(),
+                password: formData.password,
+                confirm_password: formData.confirm_password
             };
 
-            const response = await axios.post("http://127.0.0.1:8000/user/register/", fullData);
-            console.log(response);
-            console.log(locationData)
-            setMessage("✅ Registered successfully!");
-            setLocationData(locationData);
-            navigate("/login");
+            const response = await axios.post(
+                "http://127.0.0.1:8000/user/register/", 
+                registrationData,
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    timeout: 10000 // 10 second timeout
+                }
+            );
+
+            if (response.status === 200 || response.status === 201) {
+                setMessage("✅ Registration successful! Redirecting to login...");
+                setTimeout(() => {
+                    navigate("/login");
+                }, 2000);
+            }
 
         } catch (err) {
-            if (err.response && err.response.data) {
-                const errors = err.response.data;
-                const errorMessages = Object.entries(errors)
-                    .map(([field, messages]) => `${messages.join(", ")}`)
-                    .join("\n");
-
-                setMessage(`❌ ${errorMessages}`);
+            console.error('Registration error:', err);
+            
+            if (err.code === 'ECONNABORTED') {
+                setMessage("❌ Request timeout. Please check your connection and try again.");
+            } else if (err.response) {
+                // Server responded with error
+                const { status, data } = err.response;
+                
+                if (status === 400 && data) {
+                    // Handle validation errors
+                    let errorMessage = "❌ Registration failed:\n";
+                    
+                    if (typeof data === 'object') {
+                        Object.entries(data).forEach(([field, messages]) => {
+                            if (Array.isArray(messages)) {
+                                errorMessage += `${field}: ${messages.join(", ")}\n`;
+                            } else {
+                                errorMessage += `${field}: ${messages}\n`;
+                            }
+                        });
+                    } else {
+                        errorMessage += data.toString();
+                    }
+                    
+                    setMessage(errorMessage);
+                } else if (status === 409) {
+                    setMessage("❌ Username or email already exists. Please choose different ones.");
+                } else if (status >= 500) {
+                    setMessage("❌ Server error. Please try again later.");
+                } else {
+                    setMessage(`❌ Registration failed. Error: ${status}`);
+                }
+            } else if (err.request) {
+                // Network error
+                setMessage("❌ Network error. Please check your connection and try again.");
             } else {
-                setMessage("❌ Something went wrong. Please try again.");
+                setMessage("❌ An unexpected error occurred. Please try again.");
             }
         } finally {
             setLoading(false);
@@ -93,56 +126,125 @@ function UserRegistration() {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4 p-4 max-w-md mx-auto">
-            <h2 className="text-xl font-bold">Register</h2>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-md w-full space-y-8">
+                <div>
+                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                        Create your account
+                    </h2>
+                </div>
+                <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+                    <div className="space-y-4">
+                        <div>
+                            <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                                Username
+                            </label>
+                            <input
+                                id="username"
+                                name="username"
+                                type="text"
+                                placeholder="Enter username"
+                                value={formData.username}
+                                onChange={handleChange}
+                                required
+                                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                            />
+                        </div>
 
-            <input
-                name="username"
-                placeholder="Username"
-                value={formData.username}
-                onChange={handleChange}
-                required
-                className="w-full border p-2"
-            />
+                        <div>
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                                Email
+                            </label>
+                            <input
+                                id="email"
+                                name="email"
+                                type="email"
+                                placeholder="Enter email address"
+                                value={formData.email}
+                                onChange={handleChange}
+                                required
+                                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                            />
+                        </div>
 
-            <input
-                name="email"
-                placeholder="Email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className="w-full border p-2"
-            />
+                        <div>
+                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                                Password
+                            </label>
+                            <input
+                                id="password"
+                                name="password"
+                                type="password"
+                                placeholder="Enter password"
+                                value={formData.password}
+                                onChange={handleChange}
+                                required
+                                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                            />
+                        </div>
 
-            <input
-                name="password"
-                placeholder="Password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                className="w-full border p-2"
-            />
+                        <div>
+                            <label htmlFor="confirm_password" className="block text-sm font-medium text-gray-700">
+                                Confirm Password
+                            </label>
+                            <input
+                                id="confirm_password"
+                                name="confirm_password"
+                                type="password"
+                                placeholder="Confirm password"
+                                value={formData.confirm_password}
+                                onChange={handleChange}
+                                required
+                                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                            />
+                        </div>
+                    </div>
 
-            <input
-                name="confirm_password"
-                placeholder="Confirm Password"
-                value={formData.confirm_password}
-                onChange={handleChange}
-                required
-                className="w-full border p-2"
-            />
+                    <div>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {loading ? (
+                                <span className="flex items-center">
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Registering...
+                                </span>
+                            ) : (
+                                "Register"
+                            )}
+                        </button>
+                    </div>
 
-            <button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 text-white px-4 py-2 rounded"
-            >
-                {loading ? "Registering..." : "Register"}
-            </button>
+                    {message && (
+                        <div className={`mt-4 p-3 rounded-md text-sm whitespace-pre-line ${
+                            message.includes('✅') 
+                                ? 'bg-green-50 text-green-800 border border-green-200' 
+                                : 'bg-red-50 text-red-800 border border-red-200'
+                        }`}>
+                            {message}
+                        </div>
+                    )}
 
-            {message && <p className="mt-2 whitespace-pre-line text-red-600">{message}</p>}
-        </form>
+                    <div className="text-center">
+                        <span className="text-sm text-gray-600">
+                            Already have an account?{' '}
+                            <button
+                                type="button"
+                                onClick={() => navigate('/login')}
+                                className="font-medium text-blue-600 hover:text-blue-500"
+                            >
+                                Sign in
+                            </button>
+                        </span>
+                    </div>
+                </form>
+            </div>
+        </div>
     );
 }
 
