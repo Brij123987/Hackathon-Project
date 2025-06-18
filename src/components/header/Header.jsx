@@ -7,20 +7,20 @@ function Header({ children }) {
   const toggleDropdown = () => setIsOpen(!isOpen);
 
   return (
-    <div className="header">
+    <header className="header">
       <div className="left">
         {children[0]} {/* Logo */}
       </div>
 
       <div className="right">
         <div className="hamburger" onClick={toggleDropdown}>
-          <div className="bar" />
-          <div className="bar" />
-          <div className="bar" />
+          <div className={`bar ${isOpen ? 'active' : ''}`} />
+          <div className={`bar ${isOpen ? 'active' : ''}`} />
+          <div className={`bar ${isOpen ? 'active' : ''}`} />
         </div>
         {isOpen && children[1]} {/* DropDownPanel */}
       </div>
-    </div>
+    </header>
   );
 }
 

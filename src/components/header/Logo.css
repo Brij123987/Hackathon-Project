@@ -1,7 +1,104 @@
 .logo {
-  height: 80px;
-  width: 100px;
-  border: 2px solid black;
-  border-radius: 2px;
-  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0.5rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.logo:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.logo-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-icon {
+  font-size: 2rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.logo-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: -0.5px;
+}
+
+.logo-subtitle {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .logo-title {
+    font-size: 1.1rem;
+  }
+  
+  .logo-subtitle {
+    font-size: 0.65rem;
+  }
+  
+  .logo-icon {
+    font-size: 1.75rem;
+  }
+  
+  .logo-content {
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-title {
+    font-size: 1rem;
+  }
+  
+  .logo-subtitle {
+    font-size: 0.6rem;
+  }
+  
+  .logo-icon {
+    font-size: 1.5rem;
+  }
+  
+  .logo {
+    padding: 0.4rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .logo-text {
+    display: none;
+  }
+  
+  .logo-icon {
+    font-size: 1.75rem;
+  }
 }
