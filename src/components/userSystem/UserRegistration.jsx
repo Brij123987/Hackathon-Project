@@ -71,6 +71,7 @@ function UserRegistration() {
 
             const response = await axios.post("http://127.0.0.1:8000/user/register/", fullData);
             console.log(response);
+            console.log(locationData)
             setMessage("✅ Registered successfully!");
             setLocationData(locationData);
             navigate("/login");

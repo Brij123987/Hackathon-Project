@@ -110,21 +110,21 @@ function LiveAlerts() {
     if (earthQuakePrediction === "Low") {
         warningMessage = (
             <p className="text-lg font-semibold text-green-600">
-                ✅ EarthQuake Risk is Low near Bay of Bengal
+                ✅ EarthQuake Risk is Low near {locationData?.city}
             </p>
         );
         
     } else if (earthQuakePrediction === "Medium") {
         warningMessage = (
             <p className="text-lg font-semibold text-orange-600">
-                ⚠️ Moderate EarthQuake Risk near Bay of Bengal
+                ⚠️ Moderate EarthQuake Risk near {locationData?.city}
             </p>
         );
         
     } else if (earthQuakePrediction === "High") {
         warningMessage = (
             <p className="text-lg font-semibold text-red-600">
-                🚨 EarthQuake Warning near Bay of Bengal
+                🚨 EarthQuake Warning near {locationData?.city}
             </p>
         );
         
@@ -136,9 +136,9 @@ function LiveAlerts() {
             <div className="bg-white p-6 rounded-xl shadow-md text-center">
             <p className="text-lg font-semibold">
                 {cyclonePrediction === "Cyclone is likely to develop in this region." ? (
-                    <span className="text-red-600">🚨 Cyclone Warning near Bay of Bengal</span>
+                    <span className="text-red-600">🚨 Cyclone Warning near {locationData?.city}</span>
                 ) : (
-                    <span className="text-green-600">✅ No Cyclone Detected near Bay of Bengal</span>
+                    <span className="text-green-600">✅ No Cyclone Detected near {locationData?.city}</span>
                 )}
                 </p>
                 <p className="text-sm text-gray-600 mt-2">

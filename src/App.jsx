@@ -10,6 +10,8 @@ import GraphView from './components/graphDataView/GraphView'; // Create this com
 import UserRegistration from './components/userSystem/UserRegistration';
 import UserLogin from './components/userSystem/UserLogin';
 import { LocationProvider } from './components/userSystem/LocationContext';
+
+
 import './App.css';
 
 function App() {
@@ -26,7 +28,7 @@ function App() {
           <LocationProvider>
             <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/graphs" element={<GraphView location="japan" />} />
+                <Route path="/graphs" element={<GraphView location="Unknown" />} />
                 <Route path="/signup" element={< UserRegistration />} />
                 <Route path="/login" element={<UserLogin /> } />
             </Routes>
