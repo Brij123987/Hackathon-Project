@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useLocationContext } from "./LocationContext";
 
 function UserRegistration() {
     const [formData, setFormData] = useState({
@@ -13,6 +14,8 @@ function UserRegistration() {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
     const navigate = useNavigate();
+
+    const { setLocationData } = useLocationContext();
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -69,6 +72,7 @@ function UserRegistration() {
             const response = await axios.post("http://127.0.0.1:8000/user/register/", fullData);
             console.log(response);
             setMessage("✅ Registered successfully!");
+            setLocationData(locationData);
             navigate("/login");
 
         } catch (err) {

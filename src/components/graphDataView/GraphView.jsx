@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import EarthquakeLineChart from "./EarthquakeLineChart";
 import CycloneLineChart from "./CycloneLineChart";
+import { useLocationContext } from "../userSystem/LocationContext";
 
 const GraphView = ({ location }) => {
   const [activeTab, setActiveTab] = useState("earthquake");
+  const { locationData } = useLocationContext();
+
 
   return (
     <>
@@ -34,9 +37,9 @@ const GraphView = ({ location }) => {
 
       {/* Full-width chart below header block */}
       {activeTab === "earthquake" ? (
-        <EarthquakeLineChart location={location} />
+        <EarthquakeLineChart location={locationData.city} />
       ) : (
-        <CycloneLineChart location={"mumbai"} />
+        <CycloneLineChart location={locationData.city} />
       )}
     </>
   );

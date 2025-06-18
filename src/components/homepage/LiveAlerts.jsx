@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useLocationContext } from "../userSystem/LocationContext";
+
 
 function LiveAlerts() {
+    const { locationData } = useLocationContext();
+
     const [windSpeed, setWindSpeed] = useState(null);
     const [windPressure, setWindPressure] = useState(null);
     const [windTime, setWindTime] = useState(null);
@@ -15,22 +19,30 @@ function LiveAlerts() {
     const [expectedInHours, setExpectedInHours] = useState(null);
     const [earthQuakePrediction, setEarthQuakePrediction] = useState(null);
 
+    const today = new Date().toISOString().split("T")[0];
+
     useEffect(() => {
-        axios.get("http://127.0.0.1:8000/feature/get_cyclone_data/?location=mumbai&end_date=2025-06-17")
+        if (!locationData?.city) return; // wait until location is available
+    
+        axios
+            .get(`http://127.0.0.1:8000/feature/get_cyclone_data/?location=${locationData.city}&end_date=${today}`)
             .then((res) => {
                 const wind = res.data.data.cyclone_data.wind.speed;
                 const pressure = res.data.data.cyclone_data.main.pressure;
-                const windTime = res.data.data.cyclone_data.dt;
-
-
-                setWindSpeed(parseFloat((wind * 3.6).toFixed(2)));
+                const timestamp = res.data.data.timestamp;
+    
+                setWindSpeed((wind * 3.6).toFixed(2));
                 setWindPressure(pressure);
-                setWindTime(windTime);
+                setWindTime(new Date(timestamp * 1000));
+    
+                // You can also handle cyclone prediction here
+                setCyclonePrediction(res.data.data.prediction);
+    
             })
-            .catch((error) => {
-                console.error("Error fetching cyclone data:", error);
+            .catch((err) => {
+                console.error("Failed to fetch cyclone data:", err);
             });
-    }, []);
+    }, [locationData]);
 
     useEffect(() => {
         if (windTime) {
@@ -58,7 +70,9 @@ function LiveAlerts() {
 
 
     useEffect(() => {
-        axios.get("http://127.0.0.1:8000/feature/get_location_earthquake_historical_data/?location=japan")
+        if (!locationData?.city) return; 
+
+        axios.get(`http://127.0.0.1:8000/feature/get_location_earthquake_historical_data/?location=${locationData.city}`)
         .then((res) => {
             const predictedMagnitude = res.data.data.predict_next_earthquake.PredictedMagnitude;
             const expectedInHours = res.data.data.predict_next_earthquake.ExpectedInHours;
@@ -74,10 +88,12 @@ function LiveAlerts() {
         })
 
 
-    }, []); 
+    }, [locationData]); 
 
     useEffect(() => {
-        axios.get("http://127.0.0.1:8000/feature/get_cyclone_prediction/?location=mumbai&end_date=2025-06-17")
+        if (!locationData?.city) return;
+
+        axios.get(`http://127.0.0.1:8000/feature/get_cyclone_prediction/?location=${locationData.city}&end_date=${today}`)
         .then((res) => {
             const cyclonePrediction = res.data.data.CyclonePrediction;
             
@@ -87,7 +103,7 @@ function LiveAlerts() {
         .catch((error) => {
             console.log("Error in Getting Cyclone Prediction", error);
         })
-    }, [])
+    }, [locationData])
 
     let warningMessage = null;
 

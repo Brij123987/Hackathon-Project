@@ -9,6 +9,7 @@ import Home from './components/homepage/Home';
 import GraphView from './components/graphDataView/GraphView'; // Create this component
 import UserRegistration from './components/userSystem/UserRegistration';
 import UserLogin from './components/userSystem/UserLogin';
+import { LocationProvider } from './components/userSystem/LocationContext';
 import './App.css';
 
 function App() {
@@ -21,12 +22,16 @@ function App() {
         </Header>
 
         <div className="content">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/graphs" element={<GraphView location="japan" />} />
-            <Route path="/signup" element={< UserRegistration />} />
-            <Route path="/login" element={<UserLogin /> } />
-          </Routes>
+          
+          <LocationProvider>
+            <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/graphs" element={<GraphView location="japan" />} />
+                <Route path="/signup" element={< UserRegistration />} />
+                <Route path="/login" element={<UserLogin /> } />
+            </Routes>
+          </LocationProvider>
+
         </div>
 
         <Footer />
