@@ -18,6 +18,8 @@ function UserLogin() {
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+    console.log("API_BASE_URL", API_BASE_URL)
+
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
         setFormData({
@@ -36,10 +38,10 @@ function UserLogin() {
 
         try {
             // Simple health check
-            const response = await fetch(`${API_BASE_URL}/`, {
-                method: 'HEAD',
-                timeout: 5000
-            });
+            // const response = await fetch(`${API_BASE_URL}/`, {
+            //     method: 'HEAD',
+            //     timeout: 5000
+            // });
             setApiConnectionError(false);
             return true;
         } catch (err) {
@@ -76,7 +78,8 @@ function UserLogin() {
                     },
                     timeout: 10000
                 }
-            );
+                );
+                console.log("Test")
 
             const token = response.data.access_token;
 
