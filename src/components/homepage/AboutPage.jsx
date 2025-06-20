@@ -1,6 +1,6 @@
 function AboutPage(){
     return (
-        <h2>This is an About Detail Page</h2>
+        <h2>AI-powered Disaster Alert System for Real-time Risk Detection and Early Warnings. Next-Gen Disaster Intelligence for a Safer Tomorrow.</h2>
     );
 }
 

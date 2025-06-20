@@ -9,11 +9,12 @@ import Home from './components/homepage/Home';
 import GraphView from './components/graphDataView/GraphView'; // Create this component
 import UserRegistration from './components/userSystem/UserRegistration';
 import UserLogin from './components/userSystem/UserLogin';
+import AboutPage from './components/homepage/AboutPage';
+import Contact from './components/homepage/Contact';
 import { LocationProvider } from './components/userSystem/LocationContext';
 import { AuthProvider } from './components/userSystem/AuthContext';
 
 import './App.css';
-import AboutPage from './components/homepage/AboutPage';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
                   <Route path="/signup" element={< UserRegistration />} />
                   <Route path="/login" element={<UserLogin /> } />
                   <Route path="/about" element={<AboutPage />} />
+                  <Route path="/contact" element={<Contact />} />
               </Routes>
             </LocationProvider>
 
