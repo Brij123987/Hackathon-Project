@@ -13,6 +13,7 @@ import { LocationProvider } from './components/userSystem/LocationContext';
 import { AuthProvider } from './components/userSystem/AuthContext';
 
 import './App.css';
+import AboutPage from './components/homepage/AboutPage';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
                   <Route path="/graphs" element={<GraphView location="Unknown" />} />
                   <Route path="/signup" element={< UserRegistration />} />
                   <Route path="/login" element={<UserLogin /> } />
+                  <Route path="/about" element={<AboutPage />} />
               </Routes>
             </LocationProvider>
 

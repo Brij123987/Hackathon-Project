@@ -89,16 +89,10 @@ function LiveAlerts() {
         } catch (error) {
             console.error('Error in Fetching Earthquake Prediction', error);
             
-            if (error.code === 'ECONNABORTED') {
-                setEarthquakeError('Request timeout. The server is taking too long to respond.');
-            } else if (error.code === 'ERR_NETWORK') {
-                setEarthquakeError('Network error. Please check if the backend server is running and accessible.');
-            } else if (error.response?.status === 404) {
+            if (error.response?.status === 404) {
                 setEarthquakeError('Earthquake data service not found.');
             } else if (error.response?.status >= 500) {
                 setEarthquakeError('Server error. Please try again later.');
-            } else if (!API_BASE_URL) {
-                setEarthquakeError('API configuration missing. Please check environment variables.');
             } else {
                 setEarthquakeError('Unable to load earthquake data. Please try again later.');
             }
@@ -118,7 +112,7 @@ function LiveAlerts() {
             setCyclonePrediction(cyclonePrediction);
         } catch (error) {
             console.log("Error in Getting Cyclone Prediction", error);
-            setCycloneError('Unable to load cyclone prediction data.');
+            setCycloneError('Unable to load cyclone prediction data. Please try again later.');
         }
     }, [locationData?.city, today, API_BASE_URL, isAuthenticated]);
 

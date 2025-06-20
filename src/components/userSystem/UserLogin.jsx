@@ -105,7 +105,7 @@ function UserLogin() {
                 setMessage("❌ Login failed. Please try again.");
             }
             } else {
-            setMessage("❌ Network error. Please check your internet connection.");
+            setMessage("❌ Something went wrong!!! Try After Sometime.");
             }
         } finally {
             setLoading(false);
@@ -120,26 +120,6 @@ function UserLogin() {
                         Sign in to your account
                     </h2>
                 </div>
-
-                {/* API Connection Status */}
-                {apiConnectionError && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <span className="text-2xl">🚫</span>
-                            </div>
-                            <div className="ml-3">
-                                <h3 className="text-sm font-medium text-red-800">
-                                    Backend Server Not Available
-                                </h3>
-                                <div className="mt-2 text-sm text-red-700">
-                                    <p>Cannot connect to: <code className="bg-red-100 px-1 rounded">{API_BASE_URL}</code></p>
-                                    <p className="mt-1">Please ensure the backend server is running and accessible.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 <form onSubmit={handleSubmit} className="mt-8 space-y-6">
                     <div className="space-y-4">

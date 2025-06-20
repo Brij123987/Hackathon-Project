@@ -112,7 +112,7 @@ function UserRegistration() {
                 }
             } else if (err.request) {
                 // Network error
-                setMessage("❌ Network error. Please check your connection and try again.");
+                setMessage("❌ Server Error. Please try after sometimes!!!");
             } else {
                 setMessage("❌ An unexpected error occurred. Please try again.");
             }
