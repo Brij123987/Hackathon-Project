@@ -17,7 +17,7 @@ function HeroSection () {
 
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/features/get_cyclone_data/?location=${locationData.city}&end_date=${today}`,
+        `${API_BASE_URL}/feature/get_cyclone_data/?location=${locationData.city}&end_date=${today}`,
         { timeout: 100000 }
       )
 
