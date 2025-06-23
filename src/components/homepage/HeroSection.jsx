@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import { useLocationContext } from "../userSystem/LocationContext";
+import { useAuth } from "../userSystem/AuthContext";
 
 function HeroSection () {
 
   const { locationData, isLoading } = useLocationContext();
+  const { isAuthenticated } = useAuth();
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const today = useMemo(() => new Date().toISOString().split("T")[0], []);
   const [cycloneImg, setCycloneImage] = useState('');
