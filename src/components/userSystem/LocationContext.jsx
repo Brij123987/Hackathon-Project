@@ -6,7 +6,7 @@ const LocationContext = createContext();
 // Export Provider
 export const LocationProvider = ({ children }) => {
     const [locationData, setLocationData] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false); // Changed to false initially
 
     const getCityFromCoords = useCallback(async (lat, lon) => {
         try {
@@ -34,6 +34,7 @@ export const LocationProvider = ({ children }) => {
     }, []);
 
     const getCurrentLocation = useCallback(async () => {
+        setIsLoading(true);
         return new Promise((resolve) => {
             if (!navigator.geolocation) {
                 // Fallback to IP-based location
@@ -94,7 +95,7 @@ export const LocationProvider = ({ children }) => {
         });
     }, [getCityFromCoords, getCityFromIP]);
 
-    // Initialize location data on mount - only once
+    // Initialize location data on mount - only check saved location, don't request new one
     useEffect(() => {
         const initializeLocation = async () => {
             try {
@@ -103,15 +104,10 @@ export const LocationProvider = ({ children }) => {
                 if (savedLocation) {
                     const parsedLocation = JSON.parse(savedLocation);
                     setLocationData(parsedLocation);
-                    setIsLoading(false);
-                    return;
                 }
-
-                // If no saved location, try to get current location
-                await getCurrentLocation();
+                // Don't automatically request location on mount
             } catch (error) {
                 console.error('Error initializing location:', error);
-                setIsLoading(false);
             }
         };
 

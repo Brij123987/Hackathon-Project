@@ -53,9 +53,6 @@ function UserRegistration() {
         setMessage("");
 
         try {
-            // Get location data
-            await getCurrentLocation();
-
             // Prepare registration data
             const registrationData = {
                 username: formData.username.trim(),
@@ -76,7 +73,17 @@ function UserRegistration() {
             );
 
             if (response.status === 200 || response.status === 201) {
-                setMessage("✅ Registration successful! Redirecting to login...");
+                setMessage("✅ Registration successful! Getting your location...");
+                
+                // Get location data AFTER successful registration
+                try {
+                    await getCurrentLocation();
+                    setMessage("✅ Registration complete! Redirecting to login...");
+                } catch (locationError) {
+                    console.error('Location error:', locationError);
+                    setMessage("✅ Registration successful! (Location access optional) Redirecting to login...");
+                }
+                
                 setTimeout(() => {
                     navigate("/login");
                 }, 2000);
