@@ -1,4 +1,35 @@
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import axios from "axios";
+import { useLocationContext } from "../userSystem/LocationContext";
+
 function HeroSection () {
+
+  const { locationData, isLoading } = useLocationContext();
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const today = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const [cycloneImg, setCycloneImage] = useState('');
+
+
+  const fetchCycloneImage = useCallback( async () => {
+    if (!locationData?.city || !isAuthenticated) return;
+
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/features/get_cyclone_data/?location=${locationData.city}&end_date=${today}`,
+        { timeout: 100000 }
+      )
+
+      const cycloneImg =  res.data.data.image_url;
+
+      setCycloneImage(cycloneImg);
+
+    } catch (err) {
+      console.log("Failed to fetch cyclone image:", err);
+
+    }
+}, [locationData?.city, today, API_BASE_URL, isAuthenticated])
+
+
     return(
         <section className="flex flex-col items-center text-center py-20 bg-gradient-to-r from-blue-100 to-blue-200">
         <h1 className="text-4xl md:text-6xl font-bold mb-6">AI-Powered Disaster Management System</h1>
