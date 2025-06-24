@@ -80,6 +80,7 @@ const EarthquakeLineChart = ({ location }) => {
   const [tableData, setTableData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const today = useMemo(() => new Date().toISOString().split("T")[0], [])
   const [error, setError] = useState('');
   const rowsPerPage = 10;
 
@@ -88,7 +89,7 @@ const EarthquakeLineChart = ({ location }) => {
   useEffect(() => {
     setLoading(true);
     setError('');
-    axios.get(`${API_BASE_URL}/feature/get_earthquake_data_json/?location=${location}`)
+    axios.get(`${API_BASE_URL}/feature/get_earthquake_data_json/?location=${location}&date=${today}`)
       .then((res) => {
         const sorted = res.data.data.sort((a, b) => new Date(a.DateTime) - new Date(b.DateTime));
         const reversed = [...sorted].reverse();
@@ -128,7 +129,7 @@ const EarthquakeLineChart = ({ location }) => {
         setLoading(false);
         console.error(err);
       });
-  }, [location, API_BASE_URL]);
+  }, [location, today, API_BASE_URL]);
 
   // Calculate map center based on earthquake data
   const mapCenter = useMemo(() => {

@@ -70,7 +70,7 @@ function LiveAlerts() {
             }
 
             const res = await axios.get(
-                `${API_BASE_URL}/feature/get_location_earthquake_historical_data/?location=${locationData.city}`,
+                `${API_BASE_URL}/feature/get_location_earthquake_historical_data/?location=${locationData.city}&date=${today}`,
                 { 
                     timeout: 15000,
                     headers: {
@@ -97,7 +97,7 @@ function LiveAlerts() {
                 setEarthquakeError('Unable to load earthquake data. Please try again later.');
             }
         }
-    }, [locationData?.city, API_BASE_URL, isAuthenticated]);
+    }, [locationData?.city, today, API_BASE_URL, isAuthenticated]);
 
     const fetchCyclonePrediction = useCallback(async () => {
         if (!locationData?.city || !isAuthenticated) return;

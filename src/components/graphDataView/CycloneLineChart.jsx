@@ -195,7 +195,7 @@ const CycloneLineChart = ({ location }) => {
       const sorted = res.data.data.sort((a, b) => new Date(a.Date) - new Date(b.Date));
       const reversed = [...sorted].reverse();
 
-      const labels = sorted.map((item) => item.Date);
+      const labels = sorted.map(item => new Date(item.Date).toISOString());
       const windSpeeds = sorted.map((item) => item.windSpeed);
       const windPressures = sorted.map((item) => item.windPressure);
 
@@ -230,6 +230,10 @@ const CycloneLineChart = ({ location }) => {
       setLoading(false);
     }
   }, [location, API_BASE_URL]);
+
+  useEffect(() => {
+    console.log("Updated chartData:", chartData);
+  }, [chartData]);
 
   useEffect(() => {
     fetchCycloneData();
