@@ -127,3 +127,9 @@ body {
 .earthquake-popup .leaflet-popup-tip {
   background: white;
 }
+
+@media (max-width: 640px) {
+  body.popup-open .header {
+    display: none;
+  }
+}
