@@ -423,7 +423,7 @@ const CycloneLineChart = ({ location }) => {
               <span className="font-semibold text-gray-700">Wind Speed Legend:</span>
               <div className="flex items-center gap-1">
                 <div className="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow"></div>
-                <span>< 30 km/h</span>
+                <span>30 km/h</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-5 h-5 bg-yellow-500 rounded-full border-2 border-white shadow"></div>
