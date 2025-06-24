@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { Line } from "react-chartjs-2";
 import {
@@ -14,8 +14,66 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import "chartjs-adapter-date-fns";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup
+} from 'react-leaflet';
+import L from 'leaflet';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, TimeScale);
+
+// Fix for default markers in react-leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+// Custom earthquake icon based on magnitude
+const createEarthquakeIcon = (magnitude) => {
+  let color = '#22c55e'; // green for low magnitude
+  let size = 20;
+  
+  if (magnitude >= 7) {
+    color = '#ef4444'; // red for high magnitude
+    size = 35;
+  } else if (magnitude >= 5) {
+    color = '#f59e0b'; // orange for medium magnitude
+    size = 28;
+  } else if (magnitude >= 3) {
+    color = '#eab308'; // yellow for moderate magnitude
+    size = 24;
+  }
+
+  return L.divIcon({
+    className: 'custom-earthquake-marker',
+    html: `
+      <div style="
+        background-color: ${color};
+        width: ${size}px;
+        height: ${size}px;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: ${size > 25 ? '12px' : '10px'};
+        color: white;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+      ">
+        ${magnitude}
+      </div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size/2, size/2],
+    popupAnchor: [0, -size/2]
+  });
+};
 
 const EarthquakeLineChart = ({ location }) => {
   const [chartData, setChartData] = useState(null);
@@ -25,10 +83,12 @@ const EarthquakeLineChart = ({ location }) => {
   const [error, setError] = useState('');
   const rowsPerPage = 10;
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
   useEffect(() => {
     setLoading(true);
     setError('');
-    axios.get(`http://127.0.0.1:8000/feature/get_earthquake_data_json/?location=${location}`)
+    axios.get(`${API_BASE_URL}/feature/get_earthquake_data_json/?location=${location}`)
       .then((res) => {
         const sorted = res.data.data.sort((a, b) => new Date(a.DateTime) - new Date(b.DateTime));
         const reversed = [...sorted].reverse();
@@ -68,7 +128,17 @@ const EarthquakeLineChart = ({ location }) => {
         setLoading(false);
         console.error(err);
       });
-  }, [location]);
+  }, [location, API_BASE_URL]);
+
+  // Calculate map center based on earthquake data
+  const mapCenter = useMemo(() => {
+    if (tableData.length === 0) return [0, 120];
+    
+    const avgLat = tableData.reduce((sum, item) => sum + parseFloat(item.Latitude), 0) / tableData.length;
+    const avgLng = tableData.reduce((sum, item) => sum + parseFloat(item.Longitude), 0) / tableData.length;
+    
+    return [avgLat, avgLng];
+  }, [tableData]);
 
   const exportToCSV = () => {
     const headers = ['DateTime', 'Latitude', 'Longitude', 'Magnitude', 'Depth', 'AfterShock Risk'];
@@ -87,6 +157,7 @@ const EarthquakeLineChart = ({ location }) => {
     link.href = url;
     link.download = `earthquake_data_${location}.csv`;
     link.click();
+    URL.revokeObjectURL(url);
   };
 
   const exportToPDF = () => {
@@ -315,6 +386,103 @@ const EarthquakeLineChart = ({ location }) => {
           >
             Next
           </button>
+        </div>
+      </div>
+
+      {/* Interactive Earthquake Map */}
+      <div className="w-full px-2 sm:px-4 mt-8">
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="bg-gradient-to-r from-red-500 to-orange-500 text-white p-4">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              🌍 Earthquake Map View - {location}
+            </h2>
+            <p className="text-sm opacity-90 mt-1">
+              Interactive map showing earthquake locations with magnitude-based markers
+            </p>
+          </div>
+          
+          {/* Map Legend */}
+          <div className="bg-gray-50 p-3 border-b">
+            <div className="flex flex-wrap items-center gap-4 text-xs">
+              <span className="font-semibold text-gray-700">Legend:</span>
+              <div className="flex items-center gap-1">
+                <div className="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow"></div>
+                <span>Magnitude &lt; 3</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-5 h-5 bg-yellow-500 rounded-full border-2 border-white shadow"></div>
+                <span>Magnitude 3-5</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-6 h-6 bg-orange-500 rounded-full border-2 border-white shadow"></div>
+                <span>Magnitude 5-7</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-7 h-7 bg-red-500 rounded-full border-2 border-white shadow"></div>
+                <span>Magnitude ≥ 7</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-[500px] w-full relative">
+            {tableData.length > 0 ? (
+              <MapContainer
+                center={mapCenter}
+                zoom={6}
+                scrollWheelZoom={true}
+                className="h-full w-full z-0"
+                style={{ zIndex: 0 }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                {tableData.map((item, index) => (
+                  <Marker 
+                    key={index} 
+                    position={[parseFloat(item.Latitude), parseFloat(item.Longitude)]}
+                    icon={createEarthquakeIcon(parseFloat(item.Magnitude))}
+                  >
+                    <Popup className="earthquake-popup">
+                      <div className="p-2 min-w-[200px]">
+                        <div className="font-bold text-red-600 text-lg mb-2 flex items-center gap-2">
+                          🌍 Earthquake Details
+                        </div>
+                        <div className="space-y-1 text-sm">
+                          <div><strong>📅 Date:</strong> {new Date(item.DateTime).toLocaleDateString()}</div>
+                          <div><strong>⏰ Time:</strong> {new Date(item.DateTime).toLocaleTimeString()}</div>
+                          <div><strong>📍 Location:</strong> {parseFloat(item.Latitude).toFixed(3)}°, {parseFloat(item.Longitude).toFixed(3)}°</div>
+                          <div><strong>📊 Magnitude:</strong> <span className="text-red-600 font-bold">{item.Magnitude}</span></div>
+                          <div><strong>🕳️ Depth:</strong> {item.Depth} km</div>
+                          <div><strong>⚠️ Aftershock Risk:</strong> 
+                            <span className={`ml-1 px-2 py-1 rounded text-xs font-semibold ${
+                              item.AfterShock_Risk === 'High' ? 'bg-red-100 text-red-800' :
+                              item.AfterShock_Risk === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-green-100 text-green-800'
+                            }`}>
+                              {item.AfterShock_Risk}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full bg-gray-100">
+                <div className="text-center text-gray-500">
+                  <div className="text-4xl mb-2">🗺️</div>
+                  <p>No earthquake data available to display on map</p>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Map Footer */}
+          <div className="bg-gray-50 p-3 text-xs text-gray-600 text-center">
+            Showing {tableData.length} earthquake{tableData.length !== 1 ? 's' : ''} • Click markers for detailed information
+          </div>
         </div>
       </div>
     </div>

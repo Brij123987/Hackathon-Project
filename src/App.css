@@ -93,3 +93,37 @@ body {
   position: relative;
   z-index: 1;
 }
+
+/* Leaflet map z-index fixes */
+.leaflet-container {
+  z-index: 0 !important;
+}
+
+.leaflet-control-container {
+  z-index: 1 !important;
+}
+
+.leaflet-popup {
+  z-index: 2 !important;
+}
+
+/* Custom earthquake marker styles */
+.custom-earthquake-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Earthquake popup custom styles */
+.earthquake-popup .leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.earthquake-popup .leaflet-popup-content {
+  margin: 0;
+  padding: 0;
+}
+
+.earthquake-popup .leaflet-popup-tip {
+  background: white;
+}
