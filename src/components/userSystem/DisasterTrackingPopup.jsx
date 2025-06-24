@@ -202,14 +202,20 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
     }
   }, [locationData, countryCodes]);
 
-  // DON'T prevent body scroll - let the home screen show through
+  // Prevent body scroll when popup is open
   useEffect(() => {
     if (isOpen) {
-      // Only add a class to identify popup is open, don't prevent scroll
-      document.body.classList.add('popup-open');
+      // Prevent body scroll on mobile
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
       
       return () => {
-        document.body.classList.remove('popup-open');
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.height = '';
       };
     }
   }, [isOpen]);
@@ -310,56 +316,47 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center p-2 sm:p-4" style={{ zIndex: 50 }}>
-      {/* Backdrop - Semi-transparent overlay that allows home screen to show through */}
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      {/* Backdrop - Full screen overlay */}
       <div 
-        className="absolute inset-0 bg-transparent backdrop-blur-sm"
+        className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
         onClick={handleClose}
-        style={{ zIndex: 49 }}
       />
       
-      {/* Popup Container - Positioned to avoid header */}
-      <div 
-        className="relative bg-white rounded-t-xl sm:rounded-xl shadow-2xl w-full sm:max-w-md border border-gray-200 animate-popup-enter"
-        style={{ 
-          zIndex: 51,
-          maxHeight: 'calc(100vh - 120px)', // Leave space for header and margins
-          marginTop: 'auto',// Push down to avoid header overlap
-          marginBottom: '0',
-          bottom: 0
-        }}
-      >
-        {/* Scrollable Content */}
-        <div className="max-h-full overflow-y-auto">
-          {/* Header - Sticky */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-3 sm:p-4 sticky top-0 z-10 rounded-t-lg sm:rounded-t-xl">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 pr-3">
-                <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
-                  🚨 Setup Disaster Tracking
-                </h2>
-                <p className="text-blue-100 text-xs sm:text-sm mt-1">
-                  Get real-time alerts for your location
-                </p>
-              </div>
-              <button
-                onClick={handleClose}
-                disabled={isSubmitting}
-                className="text-white hover:text-gray-200 text-xl sm:text-2xl font-bold disabled:opacity-50 flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full hover:bg-white hover:bg-opacity-20 transition-colors"
-                aria-label="Close popup"
-              >
-                ×
-              </button>
+      {/* Popup Container - Mobile-first responsive design */}
+      <div className="relative w-full h-full sm:h-auto sm:w-full sm:max-w-lg mx-0 sm:mx-4 bg-white sm:rounded-xl shadow-2xl border border-gray-200 flex flex-col sm:max-h-[90vh]">
+        
+        {/* Header - Fixed at top */}
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 sm:rounded-t-xl flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 pr-3">
+              <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                🚨 Setup Disaster Tracking
+              </h2>
+              <p className="text-blue-100 text-sm mt-1">
+                Get real-time alerts for your location
+              </p>
             </div>
+            <button
+              onClick={handleClose}
+              disabled={isSubmitting}
+              className="text-white hover:text-gray-200 text-2xl font-bold disabled:opacity-50 flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-white hover:bg-opacity-20 transition-colors"
+              aria-label="Close popup"
+            >
+              ×
+            </button>
           </div>
+        </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="p-4 space-y-4">
+            
             {/* Country Code Source Toggle */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 sm:p-3">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
               <div className="flex items-center justify-between">
                 <div className="flex-1 pr-2">
-                  <label className="text-xs sm:text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium text-gray-700">
                     📡 Country Code Source
                   </label>
                   <p className="text-xs text-gray-500 mt-1">
@@ -370,7 +367,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
                   type="button"
                   onClick={toggleApiSource}
                   disabled={loadingCountries}
-                  className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium transition-colors flex-shrink-0 ${
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors flex-shrink-0 ${
                     useThirdPartyApi 
                       ? 'bg-green-100 text-green-800 hover:bg-green-200' 
                       : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
@@ -387,45 +384,51 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
 
             {/* Mobile Number Section */}
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
                 📱 Mobile Number for Emergency Alerts
               </label>
               
-              <div className="flex flex-col gap-2">
+              <div className="space-y-3">
                 {/* Country Code Dropdown */}
-                <select
-                  name="countryCode"
-                  value={formData.countryCode}
-                  onChange={handleInputChange}
-                  disabled={loadingCountries}
-                  className="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-xs sm:text-sm disabled:opacity-50"
-                >
-                  {loadingCountries ? (
-                    <option>Loading...</option>
-                  ) : (
-                    countryCodes.map((country, index) => (
-                      <option key={`${country.code}-${country.iso}-${index}`} value={country.code}>
-                        {country.flag} {country.code} {country.country}
-                      </option>
-                    ))
-                  )}
-                </select>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Country Code</label>
+                  <select
+                    name="countryCode"
+                    value={formData.countryCode}
+                    onChange={handleInputChange}
+                    disabled={loadingCountries}
+                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm disabled:opacity-50"
+                  >
+                    {loadingCountries ? (
+                      <option>Loading...</option>
+                    ) : (
+                      countryCodes.map((country, index) => (
+                        <option key={`${country.code}-${country.iso}-${index}`} value={country.code}>
+                          {country.flag} {country.code} {country.country}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
 
                 {/* Mobile Number Input */}
-                <input
-                  type="tel"
-                  name="mobileNumber"
-                  value={formData.mobileNumber}
-                  onChange={handleInputChange}
-                  placeholder="Enter mobile number"
-                  className={`w-full px-2 sm:px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm ${
-                    errors.mobileNumber ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Mobile Number</label>
+                  <input
+                    type="tel"
+                    name="mobileNumber"
+                    value={formData.mobileNumber}
+                    onChange={handleInputChange}
+                    placeholder="Enter mobile number"
+                    className={`w-full px-3 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
+                      errors.mobileNumber ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                </div>
               </div>
               
               {errors.mobileNumber && (
-                <p className="text-red-600 text-xs sm:text-sm mt-1">{errors.mobileNumber}</p>
+                <p className="text-red-600 text-sm mt-2">{errors.mobileNumber}</p>
               )}
               
               <p className="text-gray-500 text-xs mt-2">
@@ -440,23 +443,23 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
             </div>
 
             {/* Location Consent Section */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <div className="flex items-start gap-2 sm:gap-3">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
                   id="locationConsent"
                   name="locationConsent"
                   checked={formData.locationConsent}
                   onChange={handleInputChange}
-                  className={`mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0 ${
+                  className={`mt-1 h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0 ${
                     errors.locationConsent ? 'border-red-500' : ''
                   }`}
                 />
                 <div className="flex-1 min-w-0">
-                  <label htmlFor="locationConsent" className="text-xs sm:text-sm font-medium text-gray-900 cursor-pointer">
+                  <label htmlFor="locationConsent" className="text-sm font-medium text-gray-900 cursor-pointer">
                     📍 Allow location tracking for personalized alerts
                   </label>
-                  <div className="text-xs text-gray-600 mt-1 space-y-1">
+                  <div className="text-xs text-gray-600 mt-2 space-y-1">
                     <p>• Get alerts specific to your current location</p>
                     <p>• Receive warnings when disasters approach your area</p>
                     <p>• Location data is used only for disaster monitoring</p>
@@ -464,7 +467,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
                   </div>
                   
                   {locationData && (
-                    <div className="mt-2 p-2 bg-green-100 border border-green-200 rounded text-xs">
+                    <div className="mt-3 p-2 bg-green-100 border border-green-200 rounded text-xs">
                       <span className="text-green-700 font-medium">
                         ✅ Current location: {locationData.city}
                       </span>
@@ -474,13 +477,13 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
               </div>
               
               {errors.locationConsent && (
-                <p className="text-red-600 text-xs sm:text-sm mt-2">{errors.locationConsent}</p>
+                <p className="text-red-600 text-sm mt-2">{errors.locationConsent}</p>
               )}
             </div>
 
             {/* Privacy Notice */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <h4 className="text-xs sm:text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
                 🔒 Privacy & Security
               </h4>
               <ul className="text-xs text-gray-600 space-y-1">
@@ -495,57 +498,45 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
             {/* Submit Error */}
             {errors.submit && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="text-red-600 text-xs sm:text-sm">{errors.submit}</p>
+                <p className="text-red-600 text-sm">{errors.submit}</p>
               </div>
             )}
-
-            {/* Action Buttons - Sticky on mobile */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sticky bottom-0 bg-white pb-2 border-t border-gray-100 mt-4">
-              <button
-                type="button"
-                onClick={handleClose}
-                disabled={isSubmitting}
-                className="w-full sm:flex-1 px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting || loadingCountries}
-                className="w-full sm:flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors text-xs sm:text-sm"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent"></div>
-                    Setting up...
-                  </>
-                ) : (
-                  <>
-                    🚨 Start Tracking
-                  </>
-                )}
-              </button>
-            </div>
           </form>
+        </div>
+
+        {/* Action Buttons - Fixed at bottom */}
+        <div className="flex-shrink-0 p-4 border-t border-gray-100 bg-white sm:rounded-b-xl">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={handleClose}
+              disabled={isSubmitting}
+              className="w-full sm:flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              disabled={isSubmitting || loadingCountries}
+              className="w-full sm:flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors text-sm"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  Setting up...
+                </>
+              ) : (
+                <>
+                  🚨 Start Tracking
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
       <style jsx>{`
-        @keyframes popup-enter {
-          from {
-            opacity: 0;
-            transform: scale(0.95) translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-        
-        .animate-popup-enter {
-          animation: popup-enter 0.2s ease-out;
-        }
-        
         /* Custom scrollbar for webkit browsers */
         .overflow-y-auto::-webkit-scrollbar {
           width: 4px;
@@ -570,21 +561,20 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
           -webkit-overflow-scrolling: touch;
         }
         
-        /* Mobile specific adjustments */
-        @media (max-width: 640px) {
-          .animate-popup-enter {
-            animation: popup-enter-mobile 0.3s ease-out;
+        /* Mobile viewport height fix */
+        @supports (-webkit-touch-callout: none) {
+          .h-full {
+            height: -webkit-fill-available;
           }
         }
         
-        @keyframes popup-enter-mobile {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
+        /* Prevent zoom on input focus on iOS */
+        @media screen and (max-width: 768px) {
+          input[type="tel"],
+          input[type="text"],
+          input[type="email"],
+          select {
+            font-size: 16px;
           }
         }
       `}</style>
