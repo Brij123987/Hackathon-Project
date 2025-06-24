@@ -202,20 +202,16 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
     }
   }, [locationData, countryCodes]);
 
-  // Prevent body scroll when popup is open
+  // Prevent body scroll when popup is open but don't add padding
   useEffect(() => {
     if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
-      document.body.style.paddingRight = '0px'; // Prevent layout shift
-    } else {
-      document.body.style.overflow = '';
-      document.body.style.paddingRight = '';
+      
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
     }
-
-    return () => {
-      document.body.style.overflow = '';
-      document.body.style.paddingRight = '';
-    };
   }, [isOpen]);
 
   const handleInputChange = (e) => {
@@ -315,14 +311,18 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 md:p-6">
-      {/* Backdrop - subtle overlay that doesn't completely darken the background */}
+      {/* Backdrop - Light transparent overlay that allows background to show through */}
       <div 
-        className="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm"
+        className="absolute inset-0 bg-black bg-opacity-10 backdrop-blur-[1px]"
         onClick={handleClose}
+        style={{
+          background: 'rgba(0, 0, 0, 0.1)', // Very light overlay
+          backdropFilter: 'blur(1px)', // Minimal blur
+        }}
       />
       
       {/* Popup Container */}
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[95vh] overflow-hidden animate-popup-enter">
+      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[95vh] overflow-hidden animate-popup-enter border border-gray-200">
         {/* Scrollable Content */}
         <div className="max-h-[95vh] overflow-y-auto">
           {/* Header */}
