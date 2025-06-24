@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { useLocationContext } from "./LocationContext";
 
 function UserLogin() {
     const [formData, setFormData] = useState({
@@ -15,10 +16,24 @@ function UserLogin() {
     const [apiConnectionError, setApiConnectionError] = useState(false);
     const navigate = useNavigate();
     const { login } = useAuth();
+    const { locationData, getCurrentLocation, isLocationStale } = useLocationContext();
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-    console.log("API_BASE_URL", API_BASE_URL)
+    // Check and refresh location if needed after login
+    const checkLocationAfterLogin = async () => {
+        try {
+            if (!locationData || isLocationStale()) {
+                console.log('📍 Refreshing location data after login...');
+                await getCurrentLocation(true); // Force refresh
+            } else {
+                console.log('✅ Using existing location:', locationData.city);
+            }
+        } catch (error) {
+            console.error('Location refresh error:', error);
+            // Don't block login process if location fails
+        }
+    };
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -37,11 +52,6 @@ function UserLogin() {
         }
 
         try {
-            // Simple health check
-            // const response = await fetch(`${API_BASE_URL}/`, {
-            //     method: 'HEAD',
-            //     timeout: 5000
-            // });
             setApiConnectionError(false);
             return true;
         } catch (err) {
@@ -78,15 +88,17 @@ function UserLogin() {
                     },
                     timeout: 10000
                 }
-                );
-                console.log("Test")
+            );
 
             const token = response.data.access_token;
 
             // Use the auth context login method
             login(token, formData.rememberMe);
 
-            setMessage("✅ Logged in successfully!");
+            setMessage("✅ Logged in successfully! Setting up your location...");
+            
+            // Check and refresh location after successful login
+            await checkLocationAfterLogin();
             
             setTimeout(() => {
                 navigate("/");
@@ -94,18 +106,18 @@ function UserLogin() {
 
         } catch (error) {
             console.error("Login error:", error);
-        if (error.response) {
-            const { status } = error.response;
-            if (status === 401) {
-                setMessage("❌ Invalid username or password.");
-            } 
-            else if (status >= 500) {
-                setMessage("❌ Server error. Please try again later.");
+            if (error.response) {
+                const { status } = error.response;
+                if (status === 401) {
+                    setMessage("❌ Invalid username or password.");
+                } 
+                else if (status >= 500) {
+                    setMessage("❌ Server error. Please try again later.");
+                } else {
+                    setMessage("❌ Login failed. Please try again.");
+                }
             } else {
-                setMessage("❌ Login failed. Please try again.");
-            }
-            } else {
-            setMessage("❌ Something went wrong!!! Try After Sometime.");
+                setMessage("❌ Something went wrong!!! Try After Sometime.");
             }
         } finally {
             setLoading(false);
@@ -119,6 +131,9 @@ function UserLogin() {
                     <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
                         Sign in to your account
                     </h2>
+                    <p className="mt-2 text-center text-sm text-gray-600">
+                        Access personalized disaster alerts for your location
+                    </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="mt-8 space-y-6">
@@ -169,6 +184,23 @@ function UserLogin() {
                             </label>
                         </div>
                     </div>
+
+                    {/* Location Status Display */}
+                    {locationData && (
+                        <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                            <div className="flex items-center">
+                                <span className="text-green-400 text-sm mr-2">📍</span>
+                                <div>
+                                    <p className="text-sm font-medium text-green-800">
+                                        Current Location: {locationData.city}
+                                    </p>
+                                    <p className="text-xs text-green-600">
+                                        {isLocationStale() ? 'Will refresh location data after login' : 'Location data is current'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div>
                         <button

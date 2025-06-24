@@ -1,18 +1,29 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../userSystem/AuthContext";
+import { useLocationContext } from "../userSystem/LocationContext";
 
 function Features () {
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
+    const { locationData, getCurrentLocation, isLoading } = useLocationContext();
 
-    const handleTrackDisasters = () => {
+    const handleTrackDisasters = async () => {
         if (!isAuthenticated) {
             navigate('/login');
             return;
         }
-        // This could trigger geolocation + call API + navigate
-        console.log("Tracking disasters using current location...");
-        // navigate('/tracking'); // Optional: route to a tracking page
+
+        // If no location data, get it
+        if (!locationData) {
+            try {
+                await getCurrentLocation();
+            } catch (error) {
+                console.error('Error getting location:', error);
+            }
+        }
+
+        console.log("Tracking disasters using current location:", locationData?.city);
+        // You can add additional tracking logic here
     };
 
     const handleGraphView = () => {
@@ -32,9 +43,17 @@ function Features () {
                     <p>Stay informed with instant notifications for earthquakes, cyclones, floods, and more.</p>
                     
                     {isAuthenticated ? (
-                        <p className="text-sm text-yellow-600 mb-4 italic">
-                            ⚠️ By clicking the button, your location will be used and stored securely to provide disaster alerts.
-                        </p>
+                        <>
+                            {locationData ? (
+                                <p className="text-sm text-green-600 mb-4 italic">
+                                    📍 Location set: {locationData.city}. Click to track disasters in your area.
+                                </p>
+                            ) : (
+                                <p className="text-sm text-blue-600 mb-4 italic">
+                                    📍 Click to set up location-based disaster tracking.
+                                </p>
+                            )}
+                        </>
                     ) : (
                         <p className="text-sm text-blue-600 mb-4 italic">
                             🔒 Sign in required to access real-time disaster tracking for your location.
@@ -43,9 +62,13 @@ function Features () {
 
                     <button
                         onClick={handleTrackDisasters}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition"
+                        disabled={isAuthenticated && isLoading}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition disabled:opacity-50"
                     >
-                        {isAuthenticated ? 'Track Nearby Disasters' : 'Sign In to Track'}
+                        {isAuthenticated ? 
+                            (isLoading ? 'Getting Location...' : 'Track Nearby Disasters') 
+                            : 'Sign In to Track'
+                        }
                     </button>
                 </div>
 
@@ -53,7 +76,17 @@ function Features () {
                     <h3 className="text-xl font-semibold mb-2">Disaster Prediction</h3>
                     <p>Predict natural disasters using historical data and AI models with high accuracy.</p>
                     
-                    {!isAuthenticated && (
+                    {isAuthenticated ? (
+                        locationData ? (
+                            <p className="text-sm text-green-600 mb-4 italic">
+                                🤖 AI predictions available for {locationData.city}.
+                            </p>
+                        ) : (
+                            <p className="text-sm text-blue-600 mb-4 italic">
+                                🤖 Location needed for personalized AI predictions.
+                            </p>
+                        )
+                    ) : (
                         <>
                             <p className="text-sm text-blue-600 mb-4 italic">
                                 🔒 Create an account to access AI-powered disaster predictions.
@@ -74,9 +107,15 @@ function Features () {
 
                     <br></br>
                     {isAuthenticated ? (
-                        <p className="text-sm text-green-600 mb-4 italic">
-                            📊 By clicking the button, you will be redirected to a graph showing disaster data based on your current location.
-                        </p>
+                        locationData ? (
+                            <p className="text-sm text-green-600 mb-4 italic">
+                                📊 View disaster graphs and data for {locationData.city}.
+                            </p>
+                        ) : (
+                            <p className="text-sm text-blue-600 mb-4 italic">
+                                📊 Location needed to display relevant disaster graphs.
+                            </p>
+                        )
                     ) : (
                         <p className="text-sm text-blue-600 mb-4 italic">
                             🔒 Sign in to view interactive disaster graphs for your location.
