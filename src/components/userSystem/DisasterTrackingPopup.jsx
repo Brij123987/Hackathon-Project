@@ -202,6 +202,22 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
     }
   }, [locationData, countryCodes]);
 
+  // Prevent body scroll when popup is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = '0px'; // Prevent layout shift
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    };
+  }, [isOpen]);
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -298,204 +314,256 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-t-xl">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                🚨 Setup Disaster Tracking
-              </h2>
-              <p className="text-blue-100 text-sm mt-1">
-                Get real-time alerts for your location
-              </p>
-            </div>
-            <button
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="text-white hover:text-gray-200 text-2xl font-bold disabled:opacity-50"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Country Code Source Toggle */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 md:p-6">
+      {/* Backdrop - subtle overlay that doesn't completely darken the background */}
+      <div 
+        className="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm"
+        onClick={handleClose}
+      />
+      
+      {/* Popup Container */}
+      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[95vh] overflow-hidden animate-popup-enter">
+        {/* Scrollable Content */}
+        <div className="max-h-[95vh] overflow-y-auto">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 sm:p-6 sticky top-0 z-10">
             <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  📡 Country Code Source
-                </label>
-                <p className="text-xs text-gray-500 mt-1">
-                  {useThirdPartyApi ? 'Live data from REST Countries API' : 'Built-in comprehensive list'}
+              <div className="flex-1 pr-4">
+                <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                  🚨 Setup Disaster Tracking
+                </h2>
+                <p className="text-blue-100 text-xs sm:text-sm mt-1">
+                  Get real-time alerts for your location
                 </p>
               </div>
               <button
-                type="button"
-                onClick={toggleApiSource}
-                disabled={loadingCountries}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                  useThirdPartyApi 
-                    ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                    : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                } disabled:opacity-50`}
+                onClick={handleClose}
+                disabled={isSubmitting}
+                className="text-white hover:text-gray-200 text-2xl font-bold disabled:opacity-50 flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-white hover:bg-opacity-20 transition-colors"
+                aria-label="Close popup"
               >
-                {loadingCountries ? '⏳ Loading...' : useThirdPartyApi ? '🌐 API' : '📋 Default'}
+                ×
               </button>
             </div>
-            
-            {errors.api && (
-              <p className="text-orange-600 text-xs mt-2">{errors.api}</p>
-            )}
           </div>
 
-          {/* Mobile Number Section */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
-              📱 Mobile Number for Emergency Alerts
-            </label>
-            
-            <div className="flex gap-2">
-              {/* Country Code Dropdown */}
-              <select
-                name="countryCode"
-                value={formData.countryCode}
-                onChange={handleInputChange}
-                disabled={loadingCountries}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm min-w-[140px] max-w-[180px] disabled:opacity-50"
-              >
-                {loadingCountries ? (
-                  <option>Loading...</option>
-                ) : (
-                  countryCodes.map((country, index) => (
-                    <option key={`${country.code}-${country.iso}-${index}`} value={country.code}>
-                      {country.flag} {country.code} {country.country}
-                    </option>
-                  ))
-                )}
-              </select>
-
-              {/* Mobile Number Input */}
-              <input
-                type="tel"
-                name="mobileNumber"
-                value={formData.mobileNumber}
-                onChange={handleInputChange}
-                placeholder="Enter mobile number"
-                className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.mobileNumber ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-            </div>
-            
-            {errors.mobileNumber && (
-              <p className="text-red-600 text-sm mt-1">{errors.mobileNumber}</p>
-            )}
-            
-            <p className="text-gray-500 text-xs mt-2">
-              We'll send SMS alerts for earthquakes, cyclones, and other disasters in your area
-            </p>
-            
-            {/* Country Count Display */}
-            <p className="text-gray-400 text-xs mt-1">
-              {countryCodes.length} countries available • 
-              {useThirdPartyApi ? ' Live API data' : ' Built-in database'}
-            </p>
-          </div>
-
-          {/* Location Consent Section */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                id="locationConsent"
-                name="locationConsent"
-                checked={formData.locationConsent}
-                onChange={handleInputChange}
-                className={`mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
-                  errors.locationConsent ? 'border-red-500' : ''
-                }`}
-              />
-              <div className="flex-1">
-                <label htmlFor="locationConsent" className="text-sm font-medium text-gray-900 cursor-pointer">
-                  📍 Allow location tracking for personalized alerts
-                </label>
-                <div className="text-xs text-gray-600 mt-1 space-y-1">
-                  <p>• Get alerts specific to your current location</p>
-                  <p>• Receive warnings when disasters approach your area</p>
-                  <p>• Location data is used only for disaster monitoring</p>
-                  <p>• You can disable this anytime in settings</p>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+            {/* Country Code Source Toggle */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 pr-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    📡 Country Code Source
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {useThirdPartyApi ? 'Live data from REST Countries API' : 'Built-in comprehensive list'}
+                  </p>
                 </div>
-                
-                {locationData && (
-                  <div className="mt-2 p-2 bg-green-100 border border-green-200 rounded text-xs">
-                    <span className="text-green-700 font-medium">
-                      ✅ Current location: {locationData.city}
-                    </span>
-                  </div>
-                )}
+                <button
+                  type="button"
+                  onClick={toggleApiSource}
+                  disabled={loadingCountries}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors flex-shrink-0 ${
+                    useThirdPartyApi 
+                      ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                      : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                  } disabled:opacity-50`}
+                >
+                  {loadingCountries ? '⏳ Loading...' : useThirdPartyApi ? '🌐 API' : '📋 Default'}
+                </button>
               </div>
-            </div>
-            
-            {errors.locationConsent && (
-              <p className="text-red-600 text-sm mt-2">{errors.locationConsent}</p>
-            )}
-          </div>
-
-          {/* Privacy Notice */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
-              🔒 Privacy & Security
-            </h4>
-            <ul className="text-xs text-gray-600 space-y-1">
-              <li>• Your mobile number is encrypted and stored securely</li>
-              <li>• Location data is used only for disaster alert purposes</li>
-              <li>• We never share your information with third parties</li>
-              <li>• You can opt-out of tracking anytime</li>
-              <li>• Country codes are sourced from {useThirdPartyApi ? 'REST Countries API' : 'our secure database'}</li>
-            </ul>
-          </div>
-
-          {/* Submit Error */}
-          {errors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-red-600 text-sm">{errors.submit}</p>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || loadingCountries}
-              className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  Setting up...
-                </>
-              ) : (
-                <>
-                  🚨 Start Tracking
-                </>
+              
+              {errors.api && (
+                <p className="text-orange-600 text-xs mt-2">{errors.api}</p>
               )}
-            </button>
-          </div>
-        </form>
+            </div>
+
+            {/* Mobile Number Section */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                📱 Mobile Number for Emergency Alerts
+              </label>
+              
+              <div className="flex flex-col sm:flex-row gap-2">
+                {/* Country Code Dropdown */}
+                <select
+                  name="countryCode"
+                  value={formData.countryCode}
+                  onChange={handleInputChange}
+                  disabled={loadingCountries}
+                  className="w-full sm:w-auto sm:min-w-[140px] sm:max-w-[180px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm disabled:opacity-50"
+                >
+                  {loadingCountries ? (
+                    <option>Loading...</option>
+                  ) : (
+                    countryCodes.map((country, index) => (
+                      <option key={`${country.code}-${country.iso}-${index}`} value={country.code}>
+                        {country.flag} {country.code} {country.country}
+                      </option>
+                    ))
+                  )}
+                </select>
+
+                {/* Mobile Number Input */}
+                <input
+                  type="tel"
+                  name="mobileNumber"
+                  value={formData.mobileNumber}
+                  onChange={handleInputChange}
+                  placeholder="Enter mobile number"
+                  className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    errors.mobileNumber ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                />
+              </div>
+              
+              {errors.mobileNumber && (
+                <p className="text-red-600 text-sm mt-1">{errors.mobileNumber}</p>
+              )}
+              
+              <p className="text-gray-500 text-xs mt-2">
+                We'll send SMS alerts for earthquakes, cyclones, and other disasters in your area
+              </p>
+              
+              {/* Country Count Display */}
+              <p className="text-gray-400 text-xs mt-1">
+                {countryCodes.length} countries available • 
+                {useThirdPartyApi ? ' Live API data' : ' Built-in database'}
+              </p>
+            </div>
+
+            {/* Location Consent Section */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="locationConsent"
+                  name="locationConsent"
+                  checked={formData.locationConsent}
+                  onChange={handleInputChange}
+                  className={`mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0 ${
+                    errors.locationConsent ? 'border-red-500' : ''
+                  }`}
+                />
+                <div className="flex-1 min-w-0">
+                  <label htmlFor="locationConsent" className="text-sm font-medium text-gray-900 cursor-pointer">
+                    📍 Allow location tracking for personalized alerts
+                  </label>
+                  <div className="text-xs text-gray-600 mt-1 space-y-1">
+                    <p>• Get alerts specific to your current location</p>
+                    <p>• Receive warnings when disasters approach your area</p>
+                    <p>• Location data is used only for disaster monitoring</p>
+                    <p>• You can disable this anytime in settings</p>
+                  </div>
+                  
+                  {locationData && (
+                    <div className="mt-2 p-2 bg-green-100 border border-green-200 rounded text-xs">
+                      <span className="text-green-700 font-medium">
+                        ✅ Current location: {locationData.city}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {errors.locationConsent && (
+                <p className="text-red-600 text-sm mt-2">{errors.locationConsent}</p>
+              )}
+            </div>
+
+            {/* Privacy Notice */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                🔒 Privacy & Security
+              </h4>
+              <ul className="text-xs text-gray-600 space-y-1">
+                <li>• Your mobile number is encrypted and stored securely</li>
+                <li>• Location data is used only for disaster alert purposes</li>
+                <li>• We never share your information with third parties</li>
+                <li>• You can opt-out of tracking anytime</li>
+                <li>• Country codes are sourced from {useThirdPartyApi ? 'REST Countries API' : 'our secure database'}</li>
+              </ul>
+            </div>
+
+            {/* Submit Error */}
+            {errors.submit && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-red-600 text-sm">{errors.submit}</p>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 sticky bottom-0 bg-white pb-2">
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={isSubmitting}
+                className="w-full sm:flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting || loadingCountries}
+                className="w-full sm:flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Setting up...
+                  </>
+                ) : (
+                  <>
+                    🚨 Start Tracking
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
+
+      <style jsx>{`
+        @keyframes popup-enter {
+          from {
+            opacity: 0;
+            transform: scale(0.95) translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        
+        .animate-popup-enter {
+          animation: popup-enter 0.2s ease-out;
+        }
+        
+        /* Custom scrollbar for webkit browsers */
+        .overflow-y-auto::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 3px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+          background: #c1c1c1;
+          border-radius: 3px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+          background: #a8a8a8;
+        }
+        
+        /* Ensure proper touch scrolling on mobile */
+        .overflow-y-auto {
+          -webkit-overflow-scrolling: touch;
+        }
+      `}</style>
     </div>
   );
 };
