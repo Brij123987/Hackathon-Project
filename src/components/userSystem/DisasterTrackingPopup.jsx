@@ -310,19 +310,23 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 md:p-6">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 md:p-6">
       {/* Backdrop - Light transparent overlay that allows background to show through */}
       <div 
-        className="absolute inset-0 bg-black bg-opacity-10 backdrop-blur-[1px]"
+        className="absolute inset-0 bg-black bg-opacity-5 backdrop-blur-[0.5px]"
         onClick={handleClose}
         style={{
-          background: 'rgba(0, 0, 0, 0.1)', // Very light overlay
-          backdropFilter: 'blur(1px)', // Minimal blur
+          background: 'rgba(0, 0, 0, 0.05)', // Very light overlay
+          backdropFilter: 'blur(0.5px)', // Minimal blur
+          zIndex: 99998
         }}
       />
       
       {/* Popup Container */}
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[95vh] overflow-hidden animate-popup-enter border border-gray-200">
+      <div 
+        className="relative bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[95vh] overflow-hidden animate-popup-enter border border-gray-200"
+        style={{ zIndex: 99999 }}
+      >
         {/* Scrollable Content */}
         <div className="max-h-[95vh] overflow-y-auto">
           {/* Header */}
