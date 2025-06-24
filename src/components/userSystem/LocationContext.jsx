@@ -57,7 +57,7 @@ export const LocationProvider = ({ children }) => {
                 async (position) => {
                     try {
                         const { latitude, longitude } = position.coords;
-                        const city = await getCityFromCoords(latitude, longitude);
+                        const city = await getCityFromCoords(latitude, longitude);  
                         const newLocationData = { 
                             lat: latitude, 
                             lon: longitude, 
@@ -89,6 +89,7 @@ export const LocationProvider = ({ children }) => {
                     // Geolocation failed, use IP fallback
                     try {
                         const city = await getCityFromIP();
+                        
                         const newLocationData = { 
                             city, 
                             fallback: true, 
@@ -120,6 +121,25 @@ export const LocationProvider = ({ children }) => {
             );
         });
     }, [getCityFromCoords, getCityFromIP, locationData]);
+
+    // const getCurrentLocation = useCallback(async () => {
+    //     setIsLoading(true);
+    
+    //     // 🔧 Hardcoded location for testing
+    //     const hardcodedLocation = {
+    //         lat: 35.6895,
+    //         lon: 139.6917,
+    //         city: "Tokyo",
+    //         source: "hardcoded",
+    //         timestamp: Date.now()
+    //     };
+    
+    //     // Save and return the hardcoded location
+    //     setLocationData(hardcodedLocation);
+    //     localStorage.setItem('userLocation', JSON.stringify(hardcodedLocation));
+    //     setIsLoading(false);
+    //     return hardcodedLocation;
+    // }, []);
 
     // Initialize location data on mount
     useEffect(() => {
