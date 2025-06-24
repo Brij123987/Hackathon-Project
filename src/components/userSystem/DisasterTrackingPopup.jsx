@@ -202,24 +202,14 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
     }
   }, [locationData, countryCodes]);
 
-  // Prevent body scroll when popup is open
+  // DON'T prevent body scroll - let the home screen show through
   useEffect(() => {
     if (isOpen) {
-      const originalOverflow = document.body.style.overflow;
-      const originalPosition = document.body.style.position;
-      const originalWidth = document.body.style.width;
-      
-      // Prevent scroll on mobile and desktop
-      document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-      document.body.style.top = '0';
+      // Only add a class to identify popup is open, don't prevent scroll
+      document.body.classList.add('popup-open');
       
       return () => {
-        document.body.style.overflow = originalOverflow;
-        document.body.style.position = originalPosition;
-        document.body.style.width = originalWidth;
-        document.body.style.top = '';
+        document.body.classList.remove('popup-open');
       };
     }
   }, [isOpen]);
@@ -320,21 +310,21 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center p-2 sm:p-4" style={{ zIndex: 999999 }}>
-      {/* Backdrop - Very light overlay */}
+    <div className="fixed inset-0 flex items-center justify-center p-2 sm:p-4" style={{ zIndex: 50 }}>
+      {/* Backdrop - Semi-transparent overlay that allows home screen to show through */}
       <div 
-        className="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm"
+        className="absolute inset-0 bg-black bg-opacity-30 backdrop-blur-sm"
         onClick={handleClose}
-        style={{ zIndex: 999998 }}
+        style={{ zIndex: 49 }}
       />
       
-      {/* Popup Container - Improved mobile positioning */}
+      {/* Popup Container - Positioned to avoid header */}
       <div 
         className="relative bg-white rounded-lg sm:rounded-xl shadow-2xl w-full max-w-sm sm:max-w-md border border-gray-200 animate-popup-enter"
         style={{ 
-          zIndex: 999999,
-          maxHeight: 'calc(100vh - 16px)', // Leave small margin on mobile
-          marginTop: 'env(safe-area-inset-top, 0px)' // Respect safe area on mobile
+          zIndex: 51,
+          maxHeight: 'calc(100vh - 120px)', // Leave space for header and margins
+          marginTop: '80px' // Push down to avoid header overlap
         }}
       >
         {/* Scrollable Content */}
