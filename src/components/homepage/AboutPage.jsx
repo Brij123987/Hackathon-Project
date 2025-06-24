@@ -251,7 +251,6 @@ function AboutPage() {
         </div>
       </section>
     </div>
-  )
   );
 }
 
