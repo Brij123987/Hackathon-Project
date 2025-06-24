@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function Contact() {
   const [formData, setFormData] = useState({
@@ -42,6 +42,13 @@ function Contact() {
       setIsSubmitting(false);
     }
   };
+
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    setIsAuthenticated(!!token);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
@@ -91,8 +98,6 @@ function Contact() {
                   >
                     <option value="general">General Inquiry</option>
                     <option value="support">Technical Support</option>
-                    <option value="partnership">Partnership</option>
-                    <option value="media">Media & Press</option>
                     <option value="feedback">Feedback</option>
                     <option value="emergency">Emergency Services</option>
                   </select>
@@ -261,7 +266,7 @@ function Contact() {
                   </div>
                   <div className="flex items-center">
                     <span className="text-2xl mr-4">🎯</span>
-                    <span>95% prediction accuracy</span>
+                    <span>75% prediction accuracy</span>
                   </div>
                   <div className="flex items-center">
                     <span className="text-2xl mr-4">📱</span>
@@ -290,12 +295,14 @@ function Contact() {
             Join thousands of users who trust DisasterAlert for their safety. Sign up today and stay protected.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          {!isAuthenticated && (
             <button 
               onClick={() => window.location.href = '/signup'}
               className="px-8 py-4 bg-white text-blue-500 font-semibold rounded-xl hover:bg-blue-50 transition-colors shadow-sm"
             >
               Create Free Account
             </button>
+          )}
             <button 
               onClick={() => window.location.href = '/about'}
               className="px-8 py-4 border-2 border-white text-white font-semibold rounded-xl hover:bg-white hover:text-blue-500 transition-colors"

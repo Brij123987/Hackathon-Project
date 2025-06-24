@@ -1,6 +1,16 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../userSystem/AuthContext';
+
+
 
 function AboutPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    setIsAuthenticated(!!token);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Hero Section */}
@@ -21,7 +31,7 @@ function AboutPage() {
           </p>
           <div className="mt-8 flex justify-center">
             <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-full px-6 py-3">
-              <span className="text-blue-50 font-semibold">Next-Gen Disaster Intelligence for a Safer Tomorrow</span>
+              <span className="text-black font-semibold">Next-Gen Disaster Intelligence for a Safer Tomorrow</span>
             </div>
           </div>
         </div>
@@ -161,7 +171,7 @@ function AboutPage() {
             
             <div className="text-center">
               <div className="bg-gradient-to-br from-green-400 to-green-500 text-white rounded-2xl p-6 mb-4 shadow-sm">
-                <div className="text-3xl font-bold">95%</div>
+                <div className="text-3xl font-bold">75%</div>
                 <div className="text-green-100">Accuracy</div>
               </div>
               <h3 className="font-semibold text-gray-700">Prediction Accuracy</h3>
@@ -235,12 +245,14 @@ function AboutPage() {
             Be part of the next generation of disaster preparedness. Sign up today and help us build safer communities worldwide.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button 
-              onClick={() => window.location.href = '/signup'}
-              className="px-8 py-4 bg-white text-blue-500 font-semibold rounded-xl hover:bg-blue-50 transition-colors shadow-sm"
-            >
-              Get Started Today
-            </button>
+          {!isAuthenticated && (
+              <button 
+                onClick={() => window.location.href = '/signup'}
+                className="px-8 py-4 bg-white text-blue-500 font-semibold rounded-xl hover:bg-blue-50 transition-colors shadow-sm"
+              >
+                Get Started Today
+              </button>
+            )}
             <button 
               onClick={() => window.location.href = '/contact'}
               className="px-8 py-4 border-2 border-white text-white font-semibold rounded-xl hover:bg-white hover:text-blue-500 transition-colors"
