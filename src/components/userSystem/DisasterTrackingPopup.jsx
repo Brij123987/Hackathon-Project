@@ -313,18 +313,20 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
     <div className="fixed inset-0 flex items-center justify-center p-2 sm:p-4" style={{ zIndex: 50 }}>
       {/* Backdrop - Semi-transparent overlay that allows home screen to show through */}
       <div 
-        className="absolute inset-0 bg-black bg-opacity-30 backdrop-blur-sm"
+        className="absolute inset-0 bg-transparent backdrop-blur-sm"
         onClick={handleClose}
         style={{ zIndex: 49 }}
       />
       
       {/* Popup Container - Positioned to avoid header */}
       <div 
-        className="relative bg-white rounded-lg sm:rounded-xl shadow-2xl w-full max-w-sm sm:max-w-md border border-gray-200 animate-popup-enter"
+        className="relative bg-white rounded-t-xl sm:rounded-xl shadow-2xl w-full sm:max-w-md border border-gray-200 animate-popup-enter"
         style={{ 
           zIndex: 51,
           maxHeight: 'calc(100vh - 120px)', // Leave space for header and margins
-          marginTop: '80px' // Push down to avoid header overlap
+          marginTop: 'auto',// Push down to avoid header overlap
+          marginBottom: '0',
+          bottom: 0
         }}
       >
         {/* Scrollable Content */}
