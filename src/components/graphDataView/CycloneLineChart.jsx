@@ -45,24 +45,19 @@ L.Icon.Default.mergeOptions({
 const createCycloneIcon = (windSpeed) => {
   let color = '#22c55e'; // green for low wind speed
   let size = 20;
-  let intensity = 'Low';
 
   if (windSpeed >= 120) {
     color = '#dc2626'; // red for very high wind speed
     size = 40;
-    intensity = 'Extreme';
   } else if (windSpeed >= 90) {
     color = '#ea580c'; // orange-red for high wind speed
     size = 35;
-    intensity = 'High';
   } else if (windSpeed >= 60) {
     color = '#f59e0b'; // orange for moderate-high wind speed
     size = 30;
-    intensity = 'Moderate';
   } else if (windSpeed >= 30) {
     color = '#eab308'; // yellow for moderate wind speed
     size = 25;
-    intensity = 'Low';
   }
 
   return L.divIcon({
@@ -109,7 +104,7 @@ const createCycloneIcon = (windSpeed) => {
 };
 
 // Wind speed circle component for animation effect
-const WindSpeedCircle = ({ center, windSpeed, windPressure, date }) => {
+const WindSpeedCircle = ({ center, windSpeed }) => {
   const radius = Math.max(windSpeed * 100, 1000); // Scale radius based on wind speed
   const color = windSpeed >= 120 ? '#dc2626' :
     windSpeed >= 90 ? '#ea580c' :
@@ -139,47 +134,38 @@ const CycloneLineChart = ({ location }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [animationIndex, setAnimationIndex] = useState(0);
-  const today = useMemo(() => new Date().toISOString().split("T")[0], [])
-  const rowsPerPage = 10;
-
   const [currentDateSpeed, setCurrentDateSpeed] = useState(0);
   const [currentDatePressure, setCurrentDatePressure] = useState(0);
-
+  
+  const today = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const rowsPerPage = 10;
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-  // Memoize the API call to prevent unnecessary re-renders
-
+  // Fetch current cyclone data
   const fetchWindSpeedCurrent = useCallback(async () => {
     if (!location || !API_BASE_URL) return;
 
-    setLoading(true);
-    setError("");
-
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/feature/get_cyclone_data/?location=${location}&end_date=${today}`,
+        `${API_BASE_URL}/feature/get_cyclone_data/?location=${encodeURIComponent(location)}&end_date=${today}`,
         { timeout: 10000 }
       );
 
-      const currentPressure = res.data.data.cyclone_data.main.pressure;
-      const currentSpeed = res.data.data.cyclone_data.wind.speed;
+      if (res.data?.data?.cyclone_data) {
+        const currentPressure = res.data.data.cyclone_data.main?.pressure || 0;
+        const currentSpeed = res.data.data.cyclone_data.wind?.speed || 0;
 
-      setCurrentDatePressure(currentPressure);
-      setCurrentDateSpeed(currentSpeed);
-
+        setCurrentDatePressure(currentPressure);
+        setCurrentDateSpeed(currentSpeed * 3.6); // Convert m/s to km/h
+      }
     } catch (error) {
-      console.log("Failed to fetch cyclone data: ", error);
-      setError("Failed to load cyclone data. Please try again later.");
-    } finally {
-      setLoading(false);
+      console.error("Failed to fetch current cyclone data:", error);
+      setCurrentDateSpeed(0);
+      setCurrentDatePressure(0);
     }
-
   }, [location, today, API_BASE_URL]);
 
-  useEffect(() => {
-    fetchWindSpeedCurrent();
-  }, [fetchWindSpeedCurrent]);
-
+  // Fetch historical cyclone data
   const fetchCycloneData = useCallback(async () => {
     if (!location || !API_BASE_URL) return;
 
@@ -188,57 +174,75 @@ const CycloneLineChart = ({ location }) => {
 
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/feature/get_cyclone_data_json/?location=${location}`,
+        `${API_BASE_URL}/feature/get_cyclone_data_json/?location=${encodeURIComponent(location)}`,
         { timeout: 15000 }
       );
 
-      const sorted = res.data.data.sort((a, b) => new Date(a.Date) - new Date(b.Date));
-      const reversed = [...sorted].reverse();
+      if (res.data?.data && Array.isArray(res.data.data)) {
+        const sorted = res.data.data.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+        const reversed = [...sorted].reverse();
 
-      const labels = sorted.map(item => new Date(item.Date).toISOString());
-      const windSpeeds = sorted.map((item) => item.windSpeed);
-      const windPressures = sorted.map((item) => item.windPressure);
+        // Validate data structure
+        const validData = sorted.filter(item => 
+          item.Date && 
+          typeof item.windSpeed === 'number' && 
+          typeof item.windPressure === 'number'
+        );
 
-      setChartData({
-        labels,
-        datasets: [
-          {
-            label: `Wind Speed (km/h) in ${location}`,
-            data: windSpeeds,
-            borderColor: "#10b981",
-            backgroundColor: "#10b981",
-            tension: 0.4,
-            yAxisID: "y1",
-          },
-          {
-            label: `Wind Pressure (hPa)`,
-            data: windPressures,
-            borderColor: "#3b82f6",
-            backgroundColor: "#3b82f6",
-            tension: 0.4,
-            yAxisID: "y2",
-          },
-        ],
-      });
+        if (validData.length === 0) {
+          throw new Error('No valid cyclone data found');
+        }
 
-      setTableData(reversed);
-      setCurrentPage(1);
+        const labels = validData.map(item => new Date(item.Date).toISOString());
+        const windSpeeds = validData.map(item => Number(item.windSpeed) || 0);
+        const windPressures = validData.map(item => Number(item.windPressure) || 0);
+
+        setChartData({
+          labels,
+          datasets: [
+            {
+              label: `Wind Speed (km/h) in ${location}`,
+              data: windSpeeds,
+              borderColor: "#10b981",
+              backgroundColor: "rgba(16, 185, 129, 0.1)",
+              tension: 0.4,
+              yAxisID: "y1",
+              fill: false,
+            },
+            {
+              label: `Wind Pressure (hPa)`,
+              data: windPressures,
+              borderColor: "#3b82f6",
+              backgroundColor: "rgba(59, 130, 246, 0.1)",
+              tension: 0.4,
+              yAxisID: "y2",
+              fill: false,
+            },
+          ],
+        });
+
+        setTableData(reversed);
+        setCurrentPage(1);
+      } else {
+        throw new Error('Invalid data structure received');
+      }
     } catch (error) {
       console.error("Failed to fetch cyclone data:", error);
       setError("Failed to load cyclone data. Please try again later.");
+      setChartData(null);
+      setTableData([]);
     } finally {
       setLoading(false);
     }
   }, [location, API_BASE_URL]);
 
+  // Initial data fetch
   useEffect(() => {
-    console.log("Updated chartData:", chartData);
-  }, [chartData]);
-
-  useEffect(() => {
-    fetchCycloneData();
-  }, [fetchCycloneData]);
-
+    if (location) {
+      fetchWindSpeedCurrent();
+      fetchCycloneData();
+    }
+  }, [location, fetchWindSpeedCurrent, fetchCycloneData]);
 
   // Animation effect for cycling through data points
   useEffect(() => {
@@ -246,7 +250,7 @@ const CycloneLineChart = ({ location }) => {
 
     const interval = setInterval(() => {
       setAnimationIndex((prev) => (prev + 1) % tableData.length);
-    }, 2000); // Change every 2 seconds
+    }, 2000);
 
     return () => clearInterval(interval);
   }, [tableData.length]);
@@ -255,8 +259,16 @@ const CycloneLineChart = ({ location }) => {
   const mapCenter = useMemo(() => {
     if (tableData.length === 0) return [0, 120];
 
-    const avgLat = tableData.reduce((sum, item) => sum + parseFloat(item.Latitude), 0) / tableData.length;
-    const avgLng = tableData.reduce((sum, item) => sum + parseFloat(item.Longitude), 0) / tableData.length;
+    const validCoords = tableData.filter(item => 
+      item.Latitude && item.Longitude && 
+      !isNaN(parseFloat(item.Latitude)) && 
+      !isNaN(parseFloat(item.Longitude))
+    );
+
+    if (validCoords.length === 0) return [0, 120];
+
+    const avgLat = validCoords.reduce((sum, item) => sum + parseFloat(item.Latitude), 0) / validCoords.length;
+    const avgLng = validCoords.reduce((sum, item) => sum + parseFloat(item.Longitude), 0) / validCoords.length;
 
     return [avgLat, avgLng];
   }, [tableData]);
@@ -267,16 +279,26 @@ const CycloneLineChart = ({ location }) => {
     return tableData.slice(startIndex, startIndex + rowsPerPage);
   }, [tableData, currentPage]);
 
-  // Format date for mobile display (shorter format)
+  // Format date for mobile display
   const formatDateForMobile = useCallback((dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (error) {
+      return dateString;
+    }
   }, []);
 
   const exportToCSV = useCallback(() => {
+    if (tableData.length === 0) return;
+
     const headers = ["Date", "Latitude", "Longitude", "Wind Pressure", "Wind Speed"];
     const rows = tableData.map(item => [
-      item.Date, item.Latitude, item.Longitude, item.windPressure, item.windSpeed
+      item.Date || '', 
+      item.Latitude || '', 
+      item.Longitude || '', 
+      item.windPressure || '', 
+      item.windSpeed || ''
     ]);
 
     const csvContent = [
@@ -288,36 +310,65 @@ const CycloneLineChart = ({ location }) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `cyclone_data_${location}.csv`;
+    link.download = `cyclone_data_${location || 'unknown'}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   }, [tableData, location]);
 
   const exportToPDF = useCallback(() => {
+    if (tableData.length === 0) return;
+
     const doc = new jsPDF();
-    doc.text(`Cyclone Data - ${location}`, 14, 15);
+    doc.text(`Cyclone Data - ${location || 'Unknown'}`, 14, 15);
     autoTable(doc, {
       startY: 20,
       head: [["Date", "Latitude", "Longitude", "Wind Pressure", "Wind Speed"]],
       body: tableData.map(item => [
-        item.Date, item.Latitude, item.Longitude, item.windPressure, item.windSpeed
+        item.Date || '', 
+        item.Latitude || '', 
+        item.Longitude || '', 
+        item.windPressure || '', 
+        item.windSpeed || ''
       ]),
       styles: { fontSize: 8 }
     });
-    doc.save(`cyclone_data_${location}.pdf`);
+    doc.save(`cyclone_data_${location || 'unknown'}.pdf`);
   }, [tableData, location]);
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-32">
         <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-blue-500"></div>
+        <span className="ml-3 text-gray-600">Loading cyclone data...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center text-red-600 font-semibold">{error}</div>
+      <div className="text-center p-8">
+        <div className="text-red-600 font-semibold mb-4">{error}</div>
+        <button 
+          onClick={() => fetchCycloneData()}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!chartData || tableData.length === 0) {
+    return (
+      <div className="text-center p-8">
+        <div className="text-gray-600 mb-4">No cyclone data available for {location}</div>
+        <button 
+          onClick={() => fetchCycloneData()}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Refresh Data
+        </button>
+      </div>
     );
   }
 
@@ -332,22 +383,38 @@ const CycloneLineChart = ({ location }) => {
               maintainAspectRatio: false,
               plugins: {
                 legend: { position: "top" },
+                tooltip: {
+                  mode: 'index',
+                  intersect: false,
+                },
               },
               scales: {
                 x: {
                   type: "time",
-                  time: { unit: "day", tooltipFormat: "PPP" },
+                  time: { 
+                    unit: "day", 
+                    tooltipFormat: "PPP",
+                    displayFormats: {
+                      day: 'MMM dd'
+                    }
+                  },
                   title: { display: true, text: "Date" },
                 },
                 y1: {
                   position: "left",
                   title: { display: true, text: "Wind Speed (km/h)" },
+                  beginAtZero: true,
                 },
                 y2: {
                   position: "right",
                   title: { display: true, text: "Wind Pressure (hPa)" },
                   grid: { drawOnChartArea: false },
+                  beginAtZero: false,
                 },
+              },
+              interaction: {
+                mode: 'index',
+                intersect: false,
               },
             }}
           />
@@ -370,13 +437,12 @@ const CycloneLineChart = ({ location }) => {
         </button>
       </div>
 
-      {/* Responsive Table - Always Table Format */}
+      {/* Responsive Table */}
       <div className="w-full px-2 sm:px-4">
         <div className="w-full overflow-x-auto">
           <table className="min-w-full border border-gray-300 text-xs sm:text-sm text-left">
             <thead className="bg-blue-100 font-semibold uppercase">
               <tr>
-                {/* Mobile: Show abbreviated headers */}
                 <th className="px-1 sm:px-4 py-2 sm:py-3 border text-left">
                   <span className="block sm:hidden">Date</span>
                   <span className="hidden sm:block">Date</span>
@@ -407,16 +473,16 @@ const CycloneLineChart = ({ location }) => {
                     <span className="hidden sm:block">{item.Date}</span>
                   </td>
                   <td className="px-1 sm:px-4 py-2 sm:py-3 border text-xs sm:text-sm">
-                    {parseFloat(item.Latitude).toFixed(2)}
+                    {item.Latitude ? parseFloat(item.Latitude).toFixed(2) : 'N/A'}
                   </td>
                   <td className="px-1 sm:px-4 py-2 sm:py-3 border text-xs sm:text-sm">
-                    {parseFloat(item.Longitude).toFixed(2)}
+                    {item.Longitude ? parseFloat(item.Longitude).toFixed(2) : 'N/A'}
                   </td>
                   <td className="px-1 sm:px-4 py-2 sm:py-3 border font-semibold text-blue-600 text-xs sm:text-sm">
-                    {item.windPressure}
+                    {item.windPressure || 'N/A'}
                   </td>
                   <td className="px-1 sm:px-4 py-2 sm:py-3 border font-semibold text-green-600 text-xs sm:text-sm">
-                    {item.windSpeed}
+                    {item.windSpeed || 'N/A'}
                   </td>
                 </tr>
               ))}
@@ -424,87 +490,89 @@ const CycloneLineChart = ({ location }) => {
           </table>
 
           {/* Pagination */}
-          <div className="flex justify-center items-center mt-6 gap-2">
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              className="px-3 py-2 bg-gray-200 rounded disabled:opacity-50 text-sm"
-              disabled={currentPage === 1}
-            >
-              Previous
-            </button>
-            <span className="px-3 py-2 text-sm">
-              {currentPage} / {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              className="px-3 py-2 bg-gray-200 rounded disabled:opacity-50 text-sm"
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </button>
-          </div>
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center mt-6 gap-2">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                className="px-3 py-2 bg-gray-200 rounded disabled:opacity-50 text-sm"
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+              <span className="px-3 py-2 text-sm">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                className="px-3 py-2 bg-gray-200 rounded disabled:opacity-50 text-sm"
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Interactive Cyclone Map */}
-      <div className="w-full px-2 sm:px-4 mt-8">
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-4">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              🌪️ Cyclone Wind Speed Map - {location}
-            </h2>
-            <p className="text-sm opacity-90 mt-1">
-              Interactive map showing cyclone paths with animated wind speed visualization
-            </p>
-          </div>
+      {tableData.length > 0 && (
+        <div className="w-full px-2 sm:px-4 mt-8">
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                🌪️ Cyclone Wind Speed Map - {location}
+              </h2>
+              <p className="text-sm opacity-90 mt-1">
+                Interactive map showing cyclone paths with animated wind speed visualization
+              </p>
+            </div>
 
-          {/* Map Legend */}
-          <div className="bg-gray-50 p-3 border-b">
-            <div className="flex flex-wrap items-center gap-4 text-xs">
-              <span className="font-semibold text-gray-700">Wind Speed Legend:</span>
-              <div className="flex items-center gap-1">
-                <div className="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow"></div>
-                <span>30 km/h</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-5 h-5 bg-yellow-500 rounded-full border-2 border-white shadow"></div>
-                <span>30-60 km/h</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-6 h-6 bg-orange-500 rounded-full border-2 border-white shadow"></div>
-                <span>60-90 km/h</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-7 h-7 bg-orange-600 rounded-full border-2 border-white shadow"></div>
-                <span>90-120 km/h</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-8 h-8 bg-red-600 rounded-full border-2 border-white shadow"></div>
-                <span>≥ 120 km/h</span>
+            {/* Map Legend */}
+            <div className="bg-gray-50 p-3 border-b">
+              <div className="flex flex-wrap items-center gap-4 text-xs">
+                <span className="font-semibold text-gray-700">Wind Speed Legend:</span>
+                <div className="flex items-center gap-1">
+                  <div className="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow"></div>
+                  <span>&lt; 30 km/h</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-5 h-5 bg-yellow-500 rounded-full border-2 border-white shadow"></div>
+                  <span>30-60 km/h</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-6 h-6 bg-orange-500 rounded-full border-2 border-white shadow"></div>
+                  <span>60-90 km/h</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-7 h-7 bg-orange-600 rounded-full border-2 border-white shadow"></div>
+                  <span>90-120 km/h</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-8 h-8 bg-red-600 rounded-full border-2 border-white shadow"></div>
+                  <span>≥ 120 km/h</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Animation Controls */}
-          <div className="bg-gray-50 p-3 border-b flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              <span className="font-semibold">Current Animation:</span>
-              {tableData[animationIndex] ? (
-                <span className="ml-2">
-                  {new Date(tableData[animationIndex].Date).toLocaleDateString()} -
-                  Wind Speed: {tableData[animationIndex].windSpeed} km/h
-                </span>
-              ) : (
-                <span className="ml-2">Loading...</span>
-              )}
+            {/* Animation Controls */}
+            <div className="bg-gray-50 p-3 border-b flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                <span className="font-semibold">Current Animation:</span>
+                {tableData[animationIndex] ? (
+                  <span className="ml-2">
+                    {new Date(tableData[animationIndex].Date).toLocaleDateString()} -
+                    Wind Speed: {tableData[animationIndex].windSpeed} km/h
+                  </span>
+                ) : (
+                  <span className="ml-2">Loading...</span>
+                )}
+              </div>
+              <div className="text-xs text-gray-500">
+                Auto-cycling through {tableData.length} data points
+              </div>
             </div>
-            <div className="text-xs text-gray-500">
-              Auto-cycling through {tableData.length} data points
-            </div>
-          </div>
 
-          <div className="h-[500px] w-full relative">
-            {tableData.length > 0 ? (
+            <div className="h-[500px] w-full relative">
               <MapContainer
                 center={mapCenter}
                 zoom={6}
@@ -518,67 +586,67 @@ const CycloneLineChart = ({ location }) => {
                 />
 
                 {/* Show all cyclone points with reduced opacity */}
-                {tableData.map((item, index) => (
-                  <React.Fragment key={index}>
-                    <Marker
-                      position={[parseFloat(item.Latitude), parseFloat(item.Longitude)]}
-                      icon={createCycloneIcon(parseFloat(currentDateSpeed))}
-                      opacity={index === animationIndex ? 1 : 0.3}
-                    >
-                      <Popup className="cyclone-popup">
-                        <div className="p-2 min-w-[200px]">
-                          <div className="font-bold text-blue-600 text-lg mb-2 flex items-center gap-2">
-                            🌪️ Cyclone Details
-                          </div>
-                          <div className="space-y-1 text-sm">
-                            <div><strong>📅 Date:</strong> {new Date(item.Date).toLocaleDateString()}</div>
-                            <div><strong>⏰ Time:</strong> {new Date(item.Date).toLocaleTimeString()}</div>
-                            <div><strong>📍 Location:</strong> {parseFloat(item.Latitude).toFixed(3)}°, {parseFloat(item.Longitude).toFixed(3)}°</div>
-                            <div><strong>💨 Wind Speed:</strong> <span className="text-green-600 font-bold">{currentDateSpeed} km/h</span></div>
-                            <div><strong>🌡️ Pressure:</strong> {currentDatePressure} hPa</div>
-                            <div><strong>⚡ Intensity:</strong>
-                              <span className={`ml-1 px-2 py-1 rounded text-xs font-semibold ${currentDateSpeed >= 120 ? 'bg-red-100 text-red-800' :
+                {tableData.map((item, index) => {
+                  if (!item.Latitude || !item.Longitude || 
+                      isNaN(parseFloat(item.Latitude)) || 
+                      isNaN(parseFloat(item.Longitude))) {
+                    return null;
+                  }
+
+                  return (
+                    <React.Fragment key={index}>
+                      <Marker
+                        position={[parseFloat(item.Latitude), parseFloat(item.Longitude)]}
+                        icon={createCycloneIcon(parseFloat(item.windSpeed) || 0)}
+                        opacity={index === animationIndex ? 1 : 0.3}
+                      >
+                        <Popup className="cyclone-popup">
+                          <div className="p-2 min-w-[200px]">
+                            <div className="font-bold text-blue-600 text-lg mb-2 flex items-center gap-2">
+                              🌪️ Cyclone Details
+                            </div>
+                            <div className="space-y-1 text-sm">
+                              <div><strong>📅 Date:</strong> {new Date(item.Date).toLocaleDateString()}</div>
+                              <div><strong>⏰ Time:</strong> {new Date(item.Date).toLocaleTimeString()}</div>
+                              <div><strong>📍 Location:</strong> {parseFloat(item.Latitude).toFixed(3)}°, {parseFloat(item.Longitude).toFixed(3)}°</div>
+                              <div><strong>💨 Wind Speed:</strong> <span className="text-green-600 font-bold">{item.windSpeed} km/h</span></div>
+                              <div><strong>🌡️ Pressure:</strong> {item.windPressure} hPa</div>
+                              <div><strong>⚡ Intensity:</strong>
+                                <span className={`ml-1 px-2 py-1 rounded text-xs font-semibold ${
+                                  item.windSpeed >= 120 ? 'bg-red-100 text-red-800' :
                                   item.windSpeed >= 90 ? 'bg-orange-100 text-orange-800' :
-                                    item.windSpeed >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                                      'bg-green-100 text-green-800'
+                                  item.windSpeed >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-green-100 text-green-800'
                                 }`}>
-                                {currentDateSpeed >= 120 ? 'Extreme' :
-                                  currentDateSpeed >= 90 ? 'High' :
-                                  currentDateSpeed >= 60 ? 'Moderate' : 'Low'}
-                              </span>
+                                  {item.windSpeed >= 120 ? 'Extreme' :
+                                   item.windSpeed >= 90 ? 'High' :
+                                   item.windSpeed >= 60 ? 'Moderate' : 'Low'}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </Popup>
-                    </Marker>
+                        </Popup>
+                      </Marker>
 
-                    {/* Wind speed circles for visual effect */}
-                    <WindSpeedCircle
-                      center={[parseFloat(item.Latitude), parseFloat(item.Longitude)]}
-                      windSpeed={parseFloat(currentDateSpeed)}
-                      windPressure={parseFloat(currentDatePressure)}
-                      date={item.Date}
-                    />
-                  </React.Fragment>
-                ))}
+                      {/* Wind speed circles for visual effect */}
+                      <WindSpeedCircle
+                        center={[parseFloat(item.Latitude), parseFloat(item.Longitude)]}
+                        windSpeed={parseFloat(item.windSpeed) || 0}
+                      />
+                    </React.Fragment>
+                  );
+                })}
               </MapContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full bg-gray-100">
-                <div className="text-center text-gray-500">
-                  <div className="text-4xl mb-2">🗺️</div>
-                  <p>No cyclone data available to display on map</p>
-                </div>
-              </div>
-            )}
-          </div>
+            </div>
 
-          {/* Map Footer */}
-          <div className="bg-gray-50 p-3 text-xs text-gray-600 text-center">
-            Showing {tableData.length} cyclone data point{tableData.length !== 1 ? 's' : ''} •
-            Click markers for detailed information • Circles represent wind impact zones
+            {/* Map Footer */}
+            <div className="bg-gray-50 p-3 text-xs text-gray-600 text-center">
+              Showing {tableData.length} cyclone data point{tableData.length !== 1 ? 's' : ''} •
+              Click markers for detailed information • Circles represent wind impact zones
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Add CSS for animations */}
       <style jsx>{`
