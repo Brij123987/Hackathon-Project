@@ -170,7 +170,7 @@ function AboutPage() {
             
             <div className="text-center">
               <div className="bg-gradient-to-br from-purple-400 to-purple-500 text-white rounded-2xl p-6 mb-4 shadow-sm">
-                <div className="text-3xl font-bold"><30s</div>
+                <div className="text-3xl font-bold">{'<30s'}</div>
                 <div className="text-purple-100">Response</div>
               </div>
               <h3 className="font-semibold text-gray-700">Alert Speed</h3>
