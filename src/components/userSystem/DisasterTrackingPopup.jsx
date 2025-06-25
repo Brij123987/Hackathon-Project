@@ -308,6 +308,8 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
         mobileNumber: '',
         locationConsent: false
       });
+
+      handleClose();
       
     } catch (error) {
       console.error('Error setting up disaster tracking:', error);
