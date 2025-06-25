@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocationContext } from './LocationContext';
+import axios from 'axios';
 
 const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -13,6 +14,8 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
   const [loadingCountries, setLoadingCountries] = useState(false);
   const [useThirdPartyApi, setUseThirdPartyApi] = useState(false);
   const { getCurrentLocation, locationData } = useLocationContext();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   // Default comprehensive country codes list
   const defaultCountryCodes = [
@@ -134,6 +137,11 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
     { code: '+371', country: 'Latvia', flag: '🇱🇻', iso: 'LV' },
     { code: '+372', country: 'Estonia', flag: '🇪🇪', iso: 'EE' }
   ];
+
+  useEffect(() => {
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    setIsAuthenticated(!!token);
+  }, []);
 
   // Fetch country codes from third-party API
   const fetchCountryCodesFromAPI = async () => {
@@ -276,8 +284,21 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
         countryCode: formData.countryCode,
         mobileNumber: formData.mobileNumber.replace(/\s+/g, ''),
         locationConsent: formData.locationConsent,
-        location: location
+        location: location,
+        lat: location?.latitude,
+        lon: location?.longitude
       };
+
+      // Send data to the backend API 
+      await axios.post(
+        `${API_BASE_URL}/user/track-location/`,
+          trackingData, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
 
       await onSubmit(trackingData);
       
@@ -328,11 +349,11 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-2 py-6 sm:items-center sm:p-6 bg-black/20 backdrop-blur-sm">
       {/* Backdrop */}
-      <div
+      <div 
         className="absolute inset-0"
         onClick={handleClose}
       />
-
+      
       {/* Popup Container */}
       <div className="relative w-full sm:max-w-lg bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[90vh] overflow-hidden flex flex-col">
         
@@ -361,6 +382,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
           <form onSubmit={handleSubmit} className="space-y-6">
+            
             {/* Country Code Source Toggle */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
@@ -393,7 +415,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
               <label className="block text-sm font-semibold text-gray-700 mb-4">
                 📱 Mobile Number for Emergency Alerts
               </label>
-
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Country Code */}
                 <div>
@@ -432,15 +454,15 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
                   />
                 </div>
               </div>
-
+              
               {errors.mobileNumber && (
                 <p className="text-red-600 text-sm mt-2">{errors.mobileNumber}</p>
               )}
-
+              
               <p className="text-gray-500 text-xs mt-2">
                 We'll send SMS alerts for earthquakes, cyclones, and other disasters in your area
               </p>
-
+              
               {/* Country Count Display */}
               <p className="text-gray-400 text-xs mt-1">
                 {countryCodes.length} countries available • 
@@ -471,7 +493,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
                     <p>• Location data is used only for disaster monitoring</p>
                     <p>• You can disable this anytime in settings</p>
                   </div>
-
+                  
                   {locationData && (
                     <div className="mt-3 p-2 bg-green-100 border border-green-200 rounded text-xs">
                       <span className="text-green-700 font-medium">
@@ -481,7 +503,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
                   )}
                 </div>
               </div>
-
+              
               {errors.locationConsent && (
                 <p className="text-red-600 text-sm mt-2">{errors.locationConsent}</p>
               )}
