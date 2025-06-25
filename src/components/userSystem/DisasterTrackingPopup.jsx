@@ -369,7 +369,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
       />
       
       {/* Popup Container */}
-      <div className="relative w-full sm:max-w-lg bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="relative w-full sm:max-w-lg bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[85vh] overflow-hidden flex flex-col mt-25">
         
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex-shrink-0">
