@@ -3,6 +3,7 @@ import { useAuth } from "../userSystem/AuthContext";
 import { useLocationContext } from "../userSystem/LocationContext";
 import { useState } from "react";
 import DisasterTrackingPopup from "../userSystem/DisasterTrackingPopup";
+import axios from "axios";
 
 function Features () {
     const navigate = useNavigate();
@@ -10,6 +11,7 @@ function Features () {
     const { locationData, getCurrentLocation, isLoading } = useLocationContext();
     const [showTrackingPopup, setShowTrackingPopup] = useState(false);
     const [trackingSetupComplete, setTrackingSetupComplete] = useState(false);
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
     const handleTrackDisasters = async () => {
         if (!isAuthenticated) {
@@ -52,6 +54,27 @@ function Features () {
         navigate('/graphs');
     }
 
+    const handleStopTracking = async () => {
+
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        if (!token) throw new Error("Authentication token not found");
+
+        try{
+            await axios.post(`${API_BASE_URL}/user/stop-tracking/`, {}, 
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+            });
+            setTrackingSetupComplete(false);
+            alert('🚫 Disaster tracking stopped.');
+        } catch (err) {
+            console.error('Error stopping tracking:', err);
+            alert('❌ Failed to stop tracking.');
+        }
+        
+    };
+
     return (
         <>
             <section id="features" className="py-16 px-6 md:px-20 bg-white">
@@ -64,9 +87,17 @@ function Features () {
                         {isAuthenticated ? (
                             <>
                                 {trackingSetupComplete ? (
-                                    <p className="text-sm text-green-600 mb-4 italic">
-                                        ✅ Disaster tracking is active! You'll receive SMS alerts for your area.
-                                    </p>
+                                    <>
+                                        <p className="text-sm text-green-600 mb-4 italic">
+                                            ✅ Disaster tracking is active! You'll receive SMS alerts for your area.
+                                        </p>
+                                        <button
+                                            onClick={handleStopTracking}
+                                            className="mt-2 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                                        >
+                                            🛑 Stop Tracking
+                                        </button>
+                                    </>
                                 ) : locationData ? (
                                     <p className="text-sm text-green-600 mb-4 italic">
                                         📍 Location set: {locationData.city}. Click to set up SMS alerts for disasters in your area.

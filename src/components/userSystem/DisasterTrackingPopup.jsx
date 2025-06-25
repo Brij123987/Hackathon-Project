@@ -284,13 +284,16 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
         countryCode: formData.countryCode,
         mobileNumber: formData.mobileNumber.replace(/\s+/g, ''),
         locationConsent: formData.locationConsent,
-        location: location,
-        lat: location?.latitude,
-        lon: location?.longitude
+        location: location?.city,
+        lat: location?.lat,
+        lon: location?.lon
       };
 
+      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      if (!token) throw new Error("Authentication token not found");
+
       // Send data to the backend API 
-      await axios.post(
+      const response = await axios.post(
         `${API_BASE_URL}/user/track-location/`,
           trackingData, {
           headers: {
@@ -298,18 +301,27 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
             'Authorization': `Bearer ${token}`
           }
         });
+      
+      if (response.data?.error) {
+        alert(`❌ ${response.data.error}`);
+        return;
+      }
 
 
+      // ✅ Call parent function if passed
       await onSubmit(trackingData);
       
-      // Reset form
-      setFormData({
-        countryCode: '+1',
-        mobileNumber: '',
-        locationConsent: false
-      });
 
-      handleClose();
+      onClose();
+      
+      // Reset form
+      // setFormData({
+      //   countryCode: '+1',
+      //   mobileNumber: '',
+      //   locationConsent: false
+      // });
+
+      // handleClose();
       
     } catch (error) {
       console.error('Error setting up disaster tracking:', error);
