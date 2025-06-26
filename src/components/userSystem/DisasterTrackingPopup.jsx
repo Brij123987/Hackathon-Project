@@ -294,7 +294,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
 
       // Step 1: Send OTP
       const response = await axios.post(
-        `${API_BASE_URL}/user/send-otp/`,
+        `${API_BASE_URL}/user/otp_send/`,
         { phoneNumber: `${formData.countryCode}${formData.mobileNumber.replace(/\s+/g, '')}` },
         {
           headers: {
@@ -355,7 +355,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
 
       // Step 2: Verify OTP
       const verifyResponse = await axios.post(
-        `${API_BASE_URL}/user/verify-otp/`,
+        `${API_BASE_URL}/user/verify_otp/`,
         {
           phoneNumber: `${formData.countryCode}${formData.mobileNumber.replace(/\s+/g, '')}`,
           code: otp,
