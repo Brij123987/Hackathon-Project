@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { useState, useEffect } from 'react';
 
 function Contact() {
@@ -11,6 +12,7 @@ function Contact() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -27,6 +29,22 @@ function Contact() {
 
     // Simulate form submission
     try {
+      const messageData = {
+        name: formData.name,
+        email: formData.email,
+        subject: formData.subject,
+        message: formData.message,
+        inquiryType: formData.inquiryType
+
+      }
+
+      const response = await axios.post(
+        `${API_BASE_URL}/user/send_user_support_email/`,
+        messageData,
+      )
+
+      console.log(response)
+
       await new Promise(resolve => setTimeout(resolve, 2000));
       setSubmitMessage('✅ Thank you for your message! We\'ll get back to you within 24 hours.');
       setFormData({
@@ -213,7 +231,7 @@ function Contact() {
                     </div>
                     <div>
                       <h4 className="font-bold text-red-700">Emergency Hotline</h4>
-                      <p className="text-red-600">+1-800-DISASTER</p>
+                      <p className="text-red-600">+91 9867839043</p>
                       <p className="text-sm text-red-500">24/7 Emergency Support</p>
                     </div>
                   </div>
@@ -225,7 +243,7 @@ function Contact() {
                     </div>
                     <div>
                       <h4 className="font-bold text-blue-700">General Inquiries</h4>
-                      <p className="text-blue-600">info@disasteralert.com</p>
+                      <p className="text-blue-600">brijeshyadav9811@gmail.com</p>
                       <p className="text-sm text-blue-500">Response within 24 hours</p>
                     </div>
                   </div>
@@ -237,13 +255,13 @@ function Contact() {
                     </div>
                     <div>
                       <h4 className="font-bold text-green-700">Technical Support</h4>
-                      <p className="text-green-600">support@disasteralert.com</p>
-                      <p className="text-sm text-green-500">Mon-Fri, 9AM-6PM EST</p>
+                      <p className="text-green-600">brijeshyadav9811@gmail.com</p>
+                      <p className="text-sm text-green-500">Sat-Sun, 9AM-6PM EST</p>
                     </div>
                   </div>
 
                   {/* Partnership */}
-                  <div className="flex items-start space-x-4 p-4 bg-purple-25 rounded-xl border border-purple-100">
+                  {/* <div className="flex items-start space-x-4 p-4 bg-purple-25 rounded-xl border border-purple-100">
                     <div className="bg-purple-50 p-3 rounded-full">
                       <span className="text-2xl">🤝</span>
                     </div>
@@ -252,7 +270,7 @@ function Contact() {
                       <p className="text-purple-600">partners@disasteralert.com</p>
                       <p className="text-sm text-purple-500">Business collaborations</p>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
 
