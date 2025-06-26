@@ -14,6 +14,13 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
   const [loadingCountries, setLoadingCountries] = useState(false);
   const [useThirdPartyApi, setUseThirdPartyApi] = useState(false);
   const { getCurrentLocation, locationData } = useLocationContext();
+
+  // OPT Verification
+  const [otpSent, setOtpSent] = useState(false);
+  const [showOtpPopup, setShowOtpPopup] = useState(false);
+  const [verificationSid, setVerificationSid] = useState('');
+
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -150,14 +157,14 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
       // Using REST Countries API - free and reliable
       const response = await fetch('https://restcountries.com/v3.1/all?fields=name,idd,flag,cca2');
       const countries = await response.json();
-      
+
       const formattedCountries = countries
         .filter(country => country.idd && country.idd.root && country.idd.suffixes)
         .map(country => {
           // Handle countries with multiple suffixes (like US with multiple area codes)
           const root = country.idd.root;
           const suffixes = country.idd.suffixes;
-          
+
           return suffixes.map(suffix => ({
             code: `${root}${suffix}`,
             country: country.name.common,
@@ -196,11 +203,11 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
   useEffect(() => {
     if (locationData && countryCodes.length > 0) {
       // Try to match user's location with country codes
-      const userCountry = countryCodes.find(country => 
+      const userCountry = countryCodes.find(country =>
         country.country.toLowerCase().includes(locationData.city?.toLowerCase()) ||
         country.iso === locationData.countryCode
       );
-      
+
       if (userCountry) {
         setFormData(prev => ({
           ...prev,
@@ -218,7 +225,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
       document.body.style.position = 'fixed';
       document.body.style.width = '100%';
       document.body.style.height = '100%';
-      
+
       return () => {
         document.body.style.overflow = '';
         document.body.style.position = '';
@@ -234,7 +241,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -266,66 +273,105 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      // Get current location if consent is given
       let location = locationData;
       if (formData.locationConsent && !location) {
         location = await getCurrentLocation();
       }
 
-      const trackingData = {
-        countryCode: formData.countryCode,
-        mobileNumber: formData.mobileNumber.replace(/\s+/g, ''),
-        locationConsent: formData.locationConsent,
-        location: location?.city,
-        lat: location?.lat,
-        lon: location?.lon
-      };
+      // const trackingData = {
+      //   countryCode: formData.countryCode,
+      //   mobileNumber: formData.mobileNumber.replace(/\s+/g, ''),
+      //   locationConsent: formData.locationConsent,
+      //   location: location?.city,
+      //   lat: location?.lat,
+      //   lon: location?.lon
+      // };
 
       const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
       if (!token) throw new Error("Authentication token not found");
 
-      // Send data to the backend API 
+      // Step 1: Send OTP (backend should trigger OTP sending via Twilio/etc)
       const response = await axios.post(
-        `${API_BASE_URL}/user/track-location/`,
-          trackingData, {
+        `${API_BASE_URL}/user/send-otp/`,
+        { phoneNumber: `${formData.countryCode}${formData.mobileNumber}` },
+        {
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           }
-        });
-      
-      if (response.data?.error) {
-        alert(`❌ ${response.data.error}`);
-        return;
+        }
+      );
+
+      if (response.data?.status === "pending") {
+        setOtpSent(true);
+        setShowOtpPopup(true);
+      } else {
+        throw new Error("Failed to send OTP");
       }
 
-
-      // ✅ Call parent function if passed
-      await onSubmit(trackingData);
-      
-
-      onClose();
-      
-      // Reset form
-      // setFormData({
-      //   countryCode: '+1',
-      //   mobileNumber: '',
-      //   locationConsent: false
-      // });
-
-      // handleClose();
-      
     } catch (error) {
-      console.error('Error setting up disaster tracking:', error);
-      setErrors({ submit: 'Failed to set up disaster tracking. Please try again.' });
+      console.error('Error sending OTP:', error);
+      setErrors({ submit: 'Failed to send OTP. Please try again.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOtpVerify = async () => {
+    if (!otp) return;
+
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+
+      const response = await axios.post(
+        `${API_BASE_URL}/user/verify-otp/`,
+        {
+          phoneNumber: `${formData.countryCode}${formData.mobileNumber}`,
+          code: otp,
+          sid: verificationSid // if your backend needs this
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.data?.status === "approved") {
+        // Now actually submit the tracking data
+        await axios.post(
+          `${API_BASE_URL}/user/track-location/`,
+          {
+            countryCode: formData.countryCode,
+            mobileNumber: formData.mobileNumber.replace(/\s+/g, ''),
+            locationConsent: formData.locationConsent,
+            location: locationData?.city,
+            lat: locationData?.lat,
+            lon: locationData?.lon
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+
+        await onSubmit(); // call parent submit if needed
+        setShowOtpPopup(false);
+        handleClose();
+
+      } else {
+        setErrors({ submit: "Invalid OTP" });
+      }
+    } catch (err) {
+      console.error("OTP verification failed", err);
+      setErrors({ submit: "Failed to verify OTP. Please try again." });
     } finally {
       setIsSubmitting(false);
     }
@@ -354,7 +400,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
     } else {
       document.body.classList.remove('popup-open');
     }
-  
+
     return () => document.body.classList.remove('popup-open');
   }, [isOpen]);
 
@@ -363,14 +409,14 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-2 py-6 sm:items-center sm:p-6 bg-black/20 backdrop-blur-sm">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0"
         onClick={handleClose}
       />
-      
+
       {/* Popup Container */}
       <div className="relative w-full sm:max-w-lg bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[85vh] overflow-hidden flex flex-col mt-25">
-        
+
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -396,7 +442,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            
+
             {/* Country Code Source Toggle */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
@@ -407,11 +453,10 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
                   type="button"
                   onClick={toggleApiSource}
                   disabled={loadingCountries}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                    useThirdPartyApi 
-                      ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                      : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                  } disabled:opacity-50`}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${useThirdPartyApi
+                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                    : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                    } disabled:opacity-50`}
                 >
                   {loadingCountries ? '⏳' : useThirdPartyApi ? '🌐 API' : '📋 Default'}
                 </button>
@@ -429,7 +474,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
               <label className="block text-sm font-semibold text-gray-700 mb-4">
                 📱 Mobile Number for Emergency Alerts
               </label>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Country Code */}
                 <div>
@@ -462,24 +507,23 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
                     value={formData.mobileNumber}
                     onChange={handleInputChange}
                     placeholder="Enter mobile number"
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
-                      errors.mobileNumber ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${errors.mobileNumber ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
                 </div>
               </div>
-              
+
               {errors.mobileNumber && (
                 <p className="text-red-600 text-sm mt-2">{errors.mobileNumber}</p>
               )}
-              
+
               <p className="text-gray-500 text-xs mt-2">
                 We'll send SMS alerts for earthquakes, cyclones, and other disasters in your area
               </p>
-              
+
               {/* Country Count Display */}
               <p className="text-gray-400 text-xs mt-1">
-                {countryCodes.length} countries available • 
+                {countryCodes.length} countries available •
                 {useThirdPartyApi ? ' Live API data' : ' Built-in database'}
               </p>
             </div>
@@ -493,9 +537,8 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
                   name="locationConsent"
                   checked={formData.locationConsent}
                   onChange={handleInputChange}
-                  className={`mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
-                    errors.locationConsent ? 'border-red-500' : ''
-                  }`}
+                  className={`mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${errors.locationConsent ? 'border-red-500' : ''
+                    }`}
                 />
                 <div>
                   <label htmlFor="locationConsent" className="text-sm font-medium text-gray-900 cursor-pointer">
@@ -507,7 +550,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
                     <p>• Location data is used only for disaster monitoring</p>
                     <p>• You can disable this anytime in settings</p>
                   </div>
-                  
+
                   {locationData && (
                     <div className="mt-3 p-2 bg-green-100 border border-green-200 rounded text-xs">
                       <span className="text-green-700 font-medium">
@@ -517,7 +560,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
                   )}
                 </div>
               </div>
-              
+
               {errors.locationConsent && (
                 <p className="text-red-600 text-sm mt-2">{errors.locationConsent}</p>
               )}
@@ -575,6 +618,40 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
           </div>
         </div>
       </div>
+
+      {showOtpPopup && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold mb-4">🔐 Enter OTP</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              An OTP has been sent to <strong>{formData.countryCode}{formData.mobileNumber}</strong>
+            </p>
+            <input
+              type="text"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg mb-3 text-sm"
+              placeholder="Enter OTP"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowOtpPopup(false)}
+                className="text-sm px-4 py-2 rounded border border-gray-300 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleOtpVerify}
+                className="text-sm px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Verify
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+          
+
     </div>
   );
 };
