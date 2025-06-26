@@ -15,11 +15,12 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
   const [useThirdPartyApi, setUseThirdPartyApi] = useState(false);
   const { getCurrentLocation, locationData } = useLocationContext();
 
-  // OPT Verification
+  // OTP Verification State
   const [otpSent, setOtpSent] = useState(false);
   const [showOtpPopup, setShowOtpPopup] = useState(false);
+  const [otp, setOtp] = useState(''); // Fixed: Added missing otp state
   const [verificationSid, setVerificationSid] = useState('');
-
+  const [otpLoading, setOtpLoading] = useState(false);
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -278,114 +279,177 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
       return;
     }
 
+    setIsSubmitting(true);
+    setErrors({});
+
     try {
+      // Get location if needed
       let location = locationData;
       if (formData.locationConsent && !location) {
         location = await getCurrentLocation();
       }
 
-      // const trackingData = {
-      //   countryCode: formData.countryCode,
-      //   mobileNumber: formData.mobileNumber.replace(/\s+/g, ''),
-      //   locationConsent: formData.locationConsent,
-      //   location: location?.city,
-      //   lat: location?.lat,
-      //   lon: location?.lon
-      // };
-
       const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
       if (!token) throw new Error("Authentication token not found");
 
-      // Step 1: Send OTP (backend should trigger OTP sending via Twilio/etc)
+      // Step 1: Send OTP
       const response = await axios.post(
         `${API_BASE_URL}/user/send-otp/`,
-        { phoneNumber: `${formData.countryCode}${formData.mobileNumber}` },
+        { phoneNumber: `${formData.countryCode}${formData.mobileNumber.replace(/\s+/g, '')}` },
         {
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000
         }
       );
+
+      console.log('OTP Response:', response.data);
 
       if (response.data?.status === "pending") {
         setOtpSent(true);
         setShowOtpPopup(true);
+        setVerificationSid(response.data.sid || ''); // Store verification SID if provided
+        setErrors({ submit: '' }); // Clear any previous errors
       } else {
-        throw new Error("Failed to send OTP");
+        throw new Error(response.data?.message || "Failed to send OTP");
       }
 
     } catch (error) {
       console.error('Error sending OTP:', error);
-      setErrors({ submit: 'Failed to send OTP. Please try again.' });
+      
+      let errorMessage = 'Failed to send OTP. Please try again.';
+      
+      if (error.response) {
+        const { status, data } = error.response;
+        if (status === 400) {
+          errorMessage = data?.message || 'Invalid phone number format.';
+        } else if (status === 401) {
+          errorMessage = 'Authentication failed. Please login again.';
+        } else if (status >= 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
+      } else if (error.message.includes('timeout')) {
+        errorMessage = 'Request timeout. Please check your connection and try again.';
+      }
+      
+      setErrors({ submit: errorMessage });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleOtpVerify = async () => {
-    if (!otp) return;
+    if (!otp || otp.length < 4) {
+      setErrors({ submit: 'Please enter a valid OTP' });
+      return;
+    }
 
-    setIsSubmitting(true);
+    setOtpLoading(true);
+    setErrors({});
+
     try {
       const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      if (!token) throw new Error("Authentication token not found");
 
-      const response = await axios.post(
+      // Step 2: Verify OTP
+      const verifyResponse = await axios.post(
         `${API_BASE_URL}/user/verify-otp/`,
         {
-          phoneNumber: `${formData.countryCode}${formData.mobileNumber}`,
+          phoneNumber: `${formData.countryCode}${formData.mobileNumber.replace(/\s+/g, '')}`,
           code: otp,
-          sid: verificationSid // if your backend needs this
+          ...(verificationSid && { sid: verificationSid })
         },
         {
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000
         }
       );
 
-      if (response.data?.status === "approved") {
-        // Now actually submit the tracking data
+      console.log('Verify Response:', verifyResponse.data);
+
+      if (verifyResponse.data?.status === "approved") {
+        // Step 3: Submit tracking data
+        const trackingData = {
+          countryCode: formData.countryCode,
+          mobileNumber: formData.mobileNumber.replace(/\s+/g, ''),
+          locationConsent: formData.locationConsent,
+          location: locationData?.city,
+          lat: locationData?.lat,
+          lon: locationData?.lon
+        };
+
         await axios.post(
           `${API_BASE_URL}/user/track-location/`,
-          {
-            countryCode: formData.countryCode,
-            mobileNumber: formData.mobileNumber.replace(/\s+/g, ''),
-            locationConsent: formData.locationConsent,
-            location: locationData?.city,
-            lat: locationData?.lat,
-            lon: locationData?.lon
-          },
+          trackingData,
           {
             headers: {
-              'Authorization': `Bearer ${token}`
-            }
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 10000
           }
         );
 
-        await onSubmit(); // call parent submit if needed
+        // Success - call parent onSubmit
+        await onSubmit(trackingData);
+        
+        // Close popups and reset form
         setShowOtpPopup(false);
         handleClose();
 
       } else {
-        setErrors({ submit: "Invalid OTP" });
+        throw new Error(verifyResponse.data?.message || "Invalid OTP");
       }
-    } catch (err) {
-      console.error("OTP verification failed", err);
-      setErrors({ submit: "Failed to verify OTP. Please try again." });
+    } catch (error) {
+      console.error("OTP verification failed:", error);
+      
+      let errorMessage = "Failed to verify OTP. Please try again.";
+      
+      if (error.response) {
+        const { status, data } = error.response;
+        if (status === 400) {
+          errorMessage = data?.message || "Invalid OTP code.";
+        } else if (status === 401) {
+          errorMessage = "Authentication failed. Please login again.";
+        } else if (status >= 500) {
+          errorMessage = "Server error. Please try again later.";
+        }
+      }
+      
+      setErrors({ submit: errorMessage });
     } finally {
-      setIsSubmitting(false);
+      setOtpLoading(false);
     }
   };
 
   const handleClose = () => {
-    if (!isSubmitting) {
+    if (!isSubmitting && !otpLoading) {
+      // Reset all state
       setFormData({
         countryCode: '+1',
         mobileNumber: '',
         locationConsent: false
       });
       setErrors({});
+      setOtpSent(false);
+      setShowOtpPopup(false);
+      setOtp('');
+      setVerificationSid('');
       onClose();
+    }
+  };
+
+  const handleOtpPopupClose = () => {
+    if (!otpLoading) {
+      setShowOtpPopup(false);
+      setOtp('');
+      setErrors({});
+      // Don't reset the main form, user might want to try again
     }
   };
 
@@ -414,7 +478,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
         onClick={handleClose}
       />
 
-      {/* Popup Container */}
+      {/* Main Popup Container */}
       <div className="relative w-full sm:max-w-lg bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[85vh] overflow-hidden flex flex-col mt-25">
 
         {/* Header */}
@@ -430,7 +494,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
             </div>
             <button
               onClick={handleClose}
-              disabled={isSubmitting}
+              disabled={isSubmitting || otpLoading}
               className="text-white hover:text-gray-200 text-2xl font-bold disabled:opacity-50"
               aria-label="Close popup"
             >
@@ -595,7 +659,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
             <button
               type="button"
               onClick={handleClose}
-              disabled={isSubmitting}
+              disabled={isSubmitting || otpLoading}
               className="flex-1 px-3 py-2 text-sm sm:text-base border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
@@ -603,13 +667,13 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
             <button
               type="submit"
               onClick={handleSubmit}
-              disabled={isSubmitting || loadingCountries}
+              disabled={isSubmitting || loadingCountries || otpLoading}
               className="flex-1 px-3 py-2 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  Setting up...
+                  Sending OTP...
                 </>
               ) : (
                 <>🚨 Start Tracking</>
@@ -619,39 +683,78 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
         </div>
       </div>
 
+      {/* OTP Verification Popup */}
       {showOtpPopup && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-bold mb-4">🔐 Enter OTP</h3>
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">🔐 Enter OTP</h3>
+              <button
+                onClick={handleOtpPopupClose}
+                disabled={otpLoading}
+                className="text-gray-400 hover:text-gray-600 text-xl font-bold disabled:opacity-50"
+              >
+                ×
+              </button>
+            </div>
+            
             <p className="text-sm text-gray-600 mb-4">
               An OTP has been sent to <strong>{formData.countryCode}{formData.mobileNumber}</strong>
             </p>
+            
             <input
               type="text"
               value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg mb-3 text-sm"
-              placeholder="Enter OTP"
+              onChange={(e) => {
+                setOtp(e.target.value);
+                // Clear errors when user types
+                if (errors.submit) {
+                  setErrors({});
+                }
+              }}
+              placeholder="Enter 6-digit OTP"
+              maxLength="6"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-4 text-center text-lg font-mono tracking-wider focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              autoFocus
             />
-            <div className="flex justify-end gap-2">
+
+            {/* OTP Error Display */}
+            {errors.submit && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                <p className="text-red-600 text-sm">{errors.submit}</p>
+              </div>
+            )}
+            
+            <div className="flex justify-end gap-3">
               <button
-                onClick={() => setShowOtpPopup(false)}
-                className="text-sm px-4 py-2 rounded border border-gray-300 hover:bg-gray-100"
+                onClick={handleOtpPopupClose}
+                disabled={otpLoading}
+                className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleOtpVerify}
-                className="text-sm px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                disabled={otpLoading || !otp}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
               >
-                Verify
+                {otpLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Verifying...
+                  </>
+                ) : (
+                  'Verify OTP'
+                )}
               </button>
             </div>
+
+            <p className="text-xs text-gray-500 mt-3 text-center">
+              Didn't receive the code? Check your SMS or try again in a few moments.
+            </p>
           </div>
         </div>
       )}
-          
-
     </div>
   );
 };
