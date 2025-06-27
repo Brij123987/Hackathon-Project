@@ -11,6 +11,7 @@ import UserRegistration from './components/userSystem/UserRegistration';
 import UserLogin from './components/userSystem/UserLogin';
 import AboutPage from './components/homepage/AboutPage';
 import Contact from './components/homepage/Contact';
+import Dashboard from './components/dashboard/Dashboard';
 import { LocationProvider } from './components/userSystem/LocationContext';
 import { AuthProvider } from './components/userSystem/AuthContext';
 
@@ -36,6 +37,7 @@ function App() {
                   <Route path="/login" element={<UserLogin /> } />
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/contact" element={<Contact />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
               </Routes>
             </LocationProvider>
 
