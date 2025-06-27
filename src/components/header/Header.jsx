@@ -80,25 +80,41 @@ function Header({ children }) {
 
   return (
     <header className="header">
-      <div className="left">
-        {children[0]} {/* Logo */}
-      </div>
+      <div className="header-row">
+        
+        {/* Left: Logo */}
+        <div className="left">
+          {children[0]} {/* Your logo */}
+        </div>
 
-      <div className="right" ref={dropdownRef}>
-        <button 
-          ref={buttonRef}
-          className={`menu-button ${isOpen ? 'active' : ''}`} 
-          onClick={toggleDropdown}
-          aria-label="Toggle menu"
-          aria-expanded={isOpen}
-        >
-          <div className="menu-icon">
-            <div className="menu-line" />
-            <div className="menu-line" />
-            <div className="menu-line" />
-          </div>
-        </button>
-        {isOpen && React.cloneElement(children[1], { onClose: closeDropdown })}
+        {/* Middle: Center image */}
+        <div className="middle">
+          <img
+            src="https://res.cloudinary.com/dxemfcfoa/image/upload/v1750998446/logotext_poweredby_360w_bgpz8y.png"
+            alt="Center Logo"
+            className="header-center-image"
+          />
+        </div>
+
+        {/* Right: Hamburger menu */}
+        <div className="right" ref={dropdownRef}>
+          <button
+            ref={buttonRef}
+            className={`menu-button ${isOpen ? 'active' : ''}`}
+            onClick={toggleDropdown}
+            aria-label="Toggle menu"
+            aria-expanded={isOpen}
+          >
+            <div className="menu-icon">
+              <div className="menu-line" />
+              <div className="menu-line" />
+              <div className="menu-line" />
+            </div>
+          </button>
+
+          {isOpen && React.cloneElement(children[1], { onClose: closeDropdown })}
+        </div>
+
       </div>
     </header>
   );

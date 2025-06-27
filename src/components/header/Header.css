@@ -1,16 +1,44 @@
+/* ===== HEADER BASE ===== */
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 1rem 2rem;
   position: relative;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  z-index: 1000; /* Ensure header has proper z-index */
+  z-index: 1000;
 }
 
+/* ===== FLEX LAYOUT ===== */
+.header-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+.left,
+.right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.middle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none; /* center image stays fixed */
+}
+
+.header-center-image {
+  height: 36px;
+  max-width: 100%;
+  width: auto;
+}
+
+/* ===== MENU BUTTON ===== */
 .menu-button {
   display: flex;
   align-items: center;
@@ -25,7 +53,7 @@
   backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
-  z-index: 10001; /* Ensure menu button is above dropdown */
+  z-index: 10001;
 }
 
 .menu-button:hover {
@@ -45,6 +73,7 @@
   border-color: rgba(255, 255, 255, 0.4);
 }
 
+/* ===== MENU ICON ===== */
 .menu-icon {
   width: 24px;
   height: 24px;
@@ -76,7 +105,6 @@
   align-self: flex-end;
 }
 
-/* Active state animations */
 .menu-button.active .menu-line:nth-child(1) {
   transform: rotate(45deg) translate(6px, 6px);
   width: 20px;
@@ -92,7 +120,7 @@
   width: 20px;
 }
 
-/* Ripple effect */
+/* ===== RIPPLE EFFECT ===== */
 .menu-button::before {
   content: '';
   position: absolute;
@@ -111,95 +139,90 @@
   height: 60px;
 }
 
-.right {
-  position: relative;
-  z-index: 10000; /* Ensure dropdown container has high z-index */
-}
-
-/* Mobile responsiveness */
+/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .header {
     padding: 0.75rem 1rem;
-    position: sticky; /* Make header sticky on mobile */
-    top: 0;
-    z-index: 1000;
   }
-  
+
+  .header-center-image {
+    height: 28px;
+    max-width: 120px;
+  }
+
   .menu-button {
     width: 40px;
     height: 40px;
   }
-  
+
   .menu-icon {
     width: 20px;
     height: 20px;
   }
-  
+
   .menu-line {
     width: 16px;
   }
-  
+
   .menu-line:nth-child(1) {
     width: 14px;
   }
-  
+
   .menu-line:nth-child(3) {
     width: 10px;
-  }
-
-  .right {
-    z-index: 10001; /* Higher z-index for mobile */
   }
 }
 
 @media (max-width: 480px) {
   .header {
     padding: 0.5rem 0.75rem;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
   }
-  
+
+  .header-center-image {
+    height: 22px;
+    max-width: 100px;
+  }
+
   .menu-button {
     width: 36px;
     height: 36px;
     border-radius: 10px;
   }
-  
+
   .menu-icon {
     width: 18px;
     height: 18px;
     gap: 3px;
   }
-  
+
   .menu-line {
     width: 14px;
     height: 1.5px;
   }
-  
+
   .menu-line:nth-child(1) {
     width: 12px;
   }
-  
+
   .menu-line:nth-child(3) {
     width: 8px;
   }
 }
 
-/* Dark mode support */
+/* ===== DARK MODE ===== */
 @media (prefers-color-scheme: dark) {
   .menu-button {
     background: rgba(0, 0, 0, 0.2);
     border-color: rgba(255, 255, 255, 0.15);
   }
-  
+
   .menu-button:hover {
     background: rgba(0, 0, 0, 0.3);
     border-color: rgba(255, 255, 255, 0.25);
   }
 }
 
-/* Accessibility improvements */
+/* ===== ACCESSIBILITY ===== */
 .menu-button:focus {
   outline: 2px solid rgba(255, 255, 255, 0.5);
   outline-offset: 2px;
@@ -209,7 +232,7 @@
   outline: none;
 }
 
-/* Loading state */
+/* ===== LOADING STATE ===== */
 .menu-button.loading .menu-line {
   animation: pulse 1.5s ease-in-out infinite;
 }
@@ -220,5 +243,18 @@
   }
   50% {
     opacity: 0.5;
+  }
+}
+
+
+@media (max-width: 768px) {
+  .header-center-image {
+    height: 28px;
+    max-width: 100px;
+  }
+
+  .menu-button {
+    width: 36px;
+    height: 36px;
   }
 }

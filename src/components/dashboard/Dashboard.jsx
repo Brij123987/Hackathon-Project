@@ -126,11 +126,11 @@ const Dashboard = () => {
                 <span className="text-lg font-semibold">Welcome back!</span>
               </div>
               {locationData && (
-                <p className="text-blue-100 text-sm">
-                  📍 Monitoring disasters for {locationData.city}
+                <p className="text-black text-lg">
+                  📍 <b>Monitoring disasters for {locationData.city}</b>
                 </p>
               )}
-              <div className="text-blue-100 text-sm mt-2">
+              <div className="text-black text-sm mt-2">
                 🕐 {currentTime.toLocaleString()}
               </div>
             </div>
