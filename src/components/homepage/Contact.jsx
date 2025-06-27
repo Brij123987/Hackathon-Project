@@ -1,5 +1,6 @@
 import axios from 'axios';
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
 
 function Contact() {
   const [formData, setFormData] = useState({
@@ -9,6 +10,8 @@ function Contact() {
     message: '',
     inquiryType: 'general'
   });
+
+  const navigate = useNavigate();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
@@ -315,14 +318,14 @@ function Contact() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
           {!isAuthenticated && (
             <button 
-              onClick={() => window.location.href = '/signup'}
+              onClick={() => navigate('/signup')}
               className="px-8 py-4 bg-white text-blue-500 font-semibold rounded-xl hover:bg-blue-50 transition-colors shadow-sm"
             >
               Create Free Account
             </button>
           )}
             <button 
-              onClick={() => window.location.href = '/about'}
+              onClick={() => navigate('/about')}
               className="px-8 py-4 border-2 border-white text-white font-semibold rounded-xl hover:bg-white hover:text-blue-500 transition-colors"
             >
               Learn More

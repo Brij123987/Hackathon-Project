@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../userSystem/AuthContext';
+import { useNavigate } from "react-router-dom";
 
 
 
 function AboutPage() {
+  const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
@@ -247,14 +249,14 @@ function AboutPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
           {!isAuthenticated && (
               <button 
-                onClick={() => window.location.href = '/signup'}
+                onClick={() => navigate('/signup')}
                 className="px-8 py-4 bg-white text-blue-500 font-semibold rounded-xl hover:bg-blue-50 transition-colors shadow-sm"
               >
                 Get Started Today
               </button>
             )}
             <button 
-              onClick={() => window.location.href = '/contact'}
+              onClick={() => navigate('/contact')}
               className="px-8 py-4 border-2 border-white text-white font-semibold rounded-xl hover:bg-white hover:text-blue-500 transition-colors"
             >
               Contact Us

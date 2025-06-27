@@ -1,15 +1,43 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import { useLocationContext } from "../userSystem/LocationContext";
-import { useAuth } from "../userSystem/AuthContext";
+// import { useAuth } from "../userSystem/AuthContext";
 
 function HeroSection () {
 
   const { locationData, isLoading } = useLocationContext();
-  const { isAuthenticated } = useAuth();
+  // const { isAuthenticated } = useAuth();
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const today = useMemo(() => new Date().toISOString().split("T")[0], []);
   const [cycloneImg, setCycloneImage] = useState('');
+
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+      const syncAuth = () => {
+          const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+          setIsAuthenticated(!!token);
+      };
+
+      // Listen to authChange and storage events
+      window.addEventListener('authChange', syncAuth);
+      window.addEventListener('storage', syncAuth); // for cross-tab logout
+
+      // Initial check
+      syncAuth();
+
+      return () => {
+          window.removeEventListener('authChange', syncAuth);
+          window.removeEventListener('storage', syncAuth);
+      };
+  }, []);
+
+  useEffect(() => {
+      if (!isAuthenticated) {
+          // Reset the cyclone image
+          setCycloneImage(null);
+      }
+  }, [isAuthenticated]);
 
 
   const fetchCycloneImage = useCallback( async () => {

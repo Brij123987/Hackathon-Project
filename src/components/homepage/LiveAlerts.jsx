@@ -32,9 +32,40 @@ function LiveAlerts() {
 
     // Check if user is authenticated
     useEffect(() => {
-        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-        setIsAuthenticated(!!token);
+        const syncAuth = () => {
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            setIsAuthenticated(!!token);
+        };
+    
+        // Listen to authChange and storage events
+        window.addEventListener('authChange', syncAuth);
+        window.addEventListener('storage', syncAuth); // for cross-tab logout
+    
+        // Initial check
+        syncAuth();
+    
+        return () => {
+            window.removeEventListener('authChange', syncAuth);
+            window.removeEventListener('storage', syncAuth);
+        };
     }, []);
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            // Reset cyclone data when user logs out
+            setWindSpeed(null);
+            setWindPressure(null);
+            setWindTime(null);
+            setTimeDifference('');
+            setCyclonePrediction('');
+            setCycloneError(null);
+            setPredictedMagnitude(null);
+            setExpectedInHours(null);
+            setEarthQuakePrediction(null);
+            setEarthquakeError(null);
+            setCycloneError(null);
+        }
+    }, [isAuthenticated]);
 
     // Memoize the fetch functions to prevent recreation on every render
     const fetchCycloneData = useCallback(async () => {

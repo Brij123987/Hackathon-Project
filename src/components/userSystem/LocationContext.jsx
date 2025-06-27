@@ -1,9 +1,13 @@
-import React, { createContext, useState, useContext, useEffect, useCallback } from "react";
+import React, {
+    createContext,
+    useContext,
+    useState,
+    useCallback,
+    useEffect
+} from 'react';
 
-// Create Context
-const LocationContext = createContext();
+export const LocationContext = createContext();
 
-// Export Provider
 export const LocationProvider = ({ children }) => {
     const [locationData, setLocationData] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -22,19 +26,7 @@ export const LocationProvider = ({ children }) => {
         }
     }, []);
 
-    const getCityFromIP = useCallback(async () => {
-        try {
-            const res = await fetch("https://ipapi.co/json/");
-            const data = await res.json();
-            return data.city || data.region || "Unknown";
-        } catch (error) {
-            console.error('Error getting city from IP:', error);
-            return "Unknown";
-        }
-    }, []);
-
     const getCurrentLocation = useCallback(async (forceRefresh = false) => {
-        // If we already have location data and not forcing refresh, return it
         if (locationData && !forceRefresh) {
             return locationData;
         }
@@ -42,14 +34,17 @@ export const LocationProvider = ({ children }) => {
         setIsLoading(true);
         return new Promise((resolve) => {
             if (!navigator.geolocation) {
-                // Fallback to IP-based location
-                getCityFromIP().then(city => {
-                    const newLocationData = { city, fallback: true, timestamp: Date.now() };
-                    setLocationData(newLocationData);
-                    localStorage.setItem('userLocation', JSON.stringify(newLocationData));
-                    setIsLoading(false);
-                    resolve(newLocationData);
-                });
+                console.error('Geolocation not supported');
+                const fallbackLocation = {
+                    city: "Unknown",
+                    fallback: true,
+                    timestamp: Date.now(),
+                    source: 'not_supported'
+                };
+                setLocationData(fallbackLocation);
+                localStorage.setItem('userLocation', JSON.stringify(fallbackLocation));
+                setIsLoading(false);
+                resolve(fallbackLocation);
                 return;
             }
 
@@ -57,10 +52,10 @@ export const LocationProvider = ({ children }) => {
                 async (position) => {
                     try {
                         const { latitude, longitude } = position.coords;
-                        const city = await getCityFromCoords(latitude, longitude);  
-                        const newLocationData = { 
-                            lat: latitude, 
-                            lon: longitude, 
+                        const city = await getCityFromCoords(latitude, longitude);
+                        const newLocationData = {
+                            lat: latitude,
+                            lon: longitude,
                             city,
                             timestamp: Date.now(),
                             source: 'gps'
@@ -71,96 +66,54 @@ export const LocationProvider = ({ children }) => {
                         resolve(newLocationData);
                     } catch (error) {
                         console.error('Error processing geolocation:', error);
-                        // Fallback to IP
-                        const city = await getCityFromIP();
-                        const newLocationData = { 
-                            city, 
-                            fallback: true, 
+                        const fallbackLocation = {
+                            city: "Unknown",
+                            fallback: true,
                             timestamp: Date.now(),
-                            source: 'ip'
+                            source: 'gps_error'
                         };
-                        setLocationData(newLocationData);
-                        localStorage.setItem('userLocation', JSON.stringify(newLocationData));
+                        setLocationData(fallbackLocation);
+                        localStorage.setItem('userLocation', JSON.stringify(fallbackLocation));
                         setIsLoading(false);
-                        resolve(newLocationData);
+                        resolve(fallbackLocation);
                     }
                 },
-                async () => {
-                    // Geolocation failed, use IP fallback
-                    try {
-                        const city = await getCityFromIP();
-                        
-                        const newLocationData = { 
-                            city, 
-                            fallback: true, 
-                            timestamp: Date.now(),
-                            source: 'ip_fallback'
-                        };
-                        setLocationData(newLocationData);
-                        localStorage.setItem('userLocation', JSON.stringify(newLocationData));
-                        setIsLoading(false);
-                        resolve(newLocationData);
-                    } catch (error) {
-                        console.error('All location methods failed:', error);
-                        const newLocationData = { 
-                            city: "Unknown", 
-                            fallback: true, 
-                            timestamp: Date.now(),
-                            source: 'failed'
-                        };
-                        setLocationData(newLocationData);
-                        setIsLoading(false);
-                        resolve(newLocationData);
-                    }
+                (error) => {
+                    console.error('Geolocation failed:', error);
+                    const fallbackLocation = {
+                        city: "Unknown",
+                        fallback: true,
+                        timestamp: Date.now(),
+                        source: 'gps_failed'
+                    };
+                    setLocationData(fallbackLocation);
+                    localStorage.setItem('userLocation', JSON.stringify(fallbackLocation));
+                    setIsLoading(false);
+                    resolve(fallbackLocation);
                 },
-                { 
-                    enableHighAccuracy: true, 
-                    timeout: 10000, // Increased timeout for better accuracy
-                    maximumAge: 300000 // 5 minutes cache
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 300000
                 }
             );
         });
-    }, [getCityFromCoords, getCityFromIP, locationData]);
+    }, [getCityFromCoords, locationData]);
 
-    // const getCurrentLocation = useCallback(async () => {
-    //     setIsLoading(true);
-    
-    //     // 🔧 Hardcoded location for testing
-    //     const hardcodedLocation = {
-    //         lat: 35.6895,
-    //         lon: 139.6917,
-    //         city: "Tokyo",
-    //         source: "hardcoded",
-    //         timestamp: Date.now()
-    //     };
-    
-    //     // Save and return the hardcoded location
-    //     setLocationData(hardcodedLocation);
-    //     localStorage.setItem('userLocation', JSON.stringify(hardcodedLocation));
-    //     setIsLoading(false);
-    //     return hardcodedLocation;
-    // }, []);
-
-    // Initialize location data on mount
     useEffect(() => {
         const initializeLocation = async () => {
             try {
-                // Check if location data exists in localStorage
                 const savedLocation = localStorage.getItem('userLocation');
                 if (savedLocation) {
                     const parsedLocation = JSON.parse(savedLocation);
-                    
-                    // Check if location data is recent (less than 24 hours old)
-                    const isRecent = parsedLocation.timestamp && 
+                    const isRecent = parsedLocation.timestamp &&
                         (Date.now() - parsedLocation.timestamp) < 24 * 60 * 60 * 1000;
-                    
                     if (isRecent) {
                         setLocationData(parsedLocation);
                         console.log('✅ Using cached location:', parsedLocation.city);
                     } else {
                         console.log('📍 Location data is stale, will refresh when needed');
-                        // Don't automatically refresh, let components request it when needed
-                        setLocationData(parsedLocation); // Still use stale data as fallback
+                        setLocationData(parsedLocation);
                     }
                 } else {
                     console.log('📍 No saved location found');
@@ -171,7 +124,7 @@ export const LocationProvider = ({ children }) => {
         };
 
         initializeLocation();
-    }, []); // Empty dependency array - only run once on mount
+    }, []);
 
     const updateLocationData = useCallback((newLocationData) => {
         const dataWithTimestamp = {
@@ -187,16 +140,15 @@ export const LocationProvider = ({ children }) => {
         localStorage.removeItem('userLocation');
     }, []);
 
-    // Check if location data needs refresh (older than 24 hours)
     const isLocationStale = useCallback(() => {
         if (!locationData || !locationData.timestamp) return true;
         return (Date.now() - locationData.timestamp) > 24 * 60 * 60 * 1000;
     }, [locationData]);
 
     return (
-        <LocationContext.Provider value={{ 
-            locationData, 
-            setLocationData: updateLocationData, 
+        <LocationContext.Provider value={{
+            locationData,
+            setLocationData: updateLocationData,
             isLoading,
             getCurrentLocation,
             clearLocationData,

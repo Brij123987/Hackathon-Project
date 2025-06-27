@@ -319,7 +319,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
     } catch (error) {
       console.error('Error sending OTP:', error);
       
-      let errorMessage = 'Failed to send OTP. Please try again.';
+      let errorMessage = "We're currently only able to send OTPs to phone numbers verified through Twilio. Please try a different number or contact support for help.";
       
       if (error.response) {
         const { status, data } = error.response;
