@@ -106,6 +106,7 @@ const createCycloneIcon = (windSpeed) => {
 // Wind speed circle component for animation effect
 const WindSpeedCircle = ({ center, windSpeed }) => {
   const radius = Math.max(windSpeed * 100, 1000); // Scale radius based on wind speed
+  console.log("radius",radius)
   const color = windSpeed >= 120 ? '#dc2626' :
     windSpeed >= 90 ? '#ea580c' :
       windSpeed >= 60 ? '#f59e0b' :
@@ -157,6 +158,8 @@ const CycloneLineChart = ({ location }) => {
 
         setCurrentDatePressure(currentPressure);
         setCurrentDateSpeed(currentSpeed * 3.6); // Convert m/s to km/h
+
+        
       }
     } catch (error) {
       console.error("Failed to fetch current cyclone data:", error);
@@ -164,6 +167,8 @@ const CycloneLineChart = ({ location }) => {
       setCurrentDatePressure(0);
     }
   }, [location, today, API_BASE_URL]);
+
+  // console.log("testing...",currentDateSpeed)
 
   // Fetch historical cyclone data
   const fetchCycloneData = useCallback(async () => {
@@ -597,7 +602,7 @@ const CycloneLineChart = ({ location }) => {
                     <React.Fragment key={index}>
                       <Marker
                         position={[parseFloat(item.Latitude), parseFloat(item.Longitude)]}
-                        icon={createCycloneIcon(parseFloat(item.windSpeed) || 0)}
+                        icon={createCycloneIcon(parseFloat(currentDateSpeed) || 0)}
                         opacity={index === animationIndex ? 1 : 0.3}
                       >
                         <Popup className="cyclone-popup">
@@ -606,21 +611,21 @@ const CycloneLineChart = ({ location }) => {
                               🌪️ Cyclone Details
                             </div>
                             <div className="space-y-1 text-sm">
-                              <div><strong>📅 Date:</strong> {new Date(item.Date).toLocaleDateString()}</div>
-                              <div><strong>⏰ Time:</strong> {new Date(item.Date).toLocaleTimeString()}</div>
+                              <div><strong>📅 Date:</strong> {new Date().toLocaleDateString()}</div>
+                              <div><strong>⏰ Time:</strong> {new Date().toLocaleTimeString()}</div>
                               <div><strong>📍 Location:</strong> {parseFloat(item.Latitude).toFixed(3)}°, {parseFloat(item.Longitude).toFixed(3)}°</div>
-                              <div><strong>💨 Wind Speed:</strong> <span className="text-green-600 font-bold">{item.windSpeed} km/h</span></div>
-                              <div><strong>🌡️ Pressure:</strong> {item.windPressure} hPa</div>
+                              <div><strong>💨 Wind Speed:</strong> <span className="text-green-600 font-bold">{parseFloat(currentDateSpeed).toFixed(2)} km/h</span></div>
+                              <div><strong>🌡️ Pressure:</strong> {currentDatePressure} hPa</div>
                               <div><strong>⚡ Intensity:</strong>
                                 <span className={`ml-1 px-2 py-1 rounded text-xs font-semibold ${
-                                  item.windSpeed >= 120 ? 'bg-red-100 text-red-800' :
-                                  item.windSpeed >= 90 ? 'bg-orange-100 text-orange-800' :
-                                  item.windSpeed >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                                  currentDateSpeed >= 120 ? 'bg-red-100 text-red-800' :
+                                  currentDateSpeed >= 90 ? 'bg-orange-100 text-orange-800' :
+                                  currentDateSpeed >= 60 ? 'bg-yellow-100 text-yellow-800' :
                                   'bg-green-100 text-green-800'
                                 }`}>
-                                  {item.windSpeed >= 120 ? 'Extreme' :
-                                   item.windSpeed >= 90 ? 'High' :
-                                   item.windSpeed >= 60 ? 'Moderate' : 'Low'}
+                                  {currentDateSpeed >= 120 ? 'Extreme' :
+                                   currentDateSpeed >= 90 ? 'High' :
+                                   currentDateSpeed >= 60 ? 'Moderate' : 'Low'}
                                 </span>
                               </div>
                             </div>
@@ -631,7 +636,8 @@ const CycloneLineChart = ({ location }) => {
                       {/* Wind speed circles for visual effect */}
                       <WindSpeedCircle
                         center={[parseFloat(item.Latitude), parseFloat(item.Longitude)]}
-                        windSpeed={parseFloat(item.windSpeed) || 0}
+                        windSpeed={parseFloat(currentDateSpeed).toFixed(2)}
+                        
                       />
                     </React.Fragment>
                   );
