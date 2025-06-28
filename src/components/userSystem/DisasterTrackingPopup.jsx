@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocationContext } from './LocationContext';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
@@ -14,6 +15,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
   const [loadingCountries, setLoadingCountries] = useState(false);
   const [useThirdPartyApi, setUseThirdPartyApi] = useState(false);
   const { getCurrentLocation, locationData } = useLocationContext();
+  const navigate = useNavigate();
 
   // OTP Verification State
   const [otpSent, setOtpSent] = useState(false);
@@ -272,6 +274,11 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleContactRedirect = () => {
+    handleClose(); // Close the popup first
+    navigate('/contact'); // Navigate to contact page
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -319,7 +326,7 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
     } catch (error) {
       console.error('Error sending OTP:', error);
       
-      let errorMessage = "We're currently only able to send OTPs to phone numbers verified through Twilio. Please try a different number or contact support for help.";
+      let errorMessage = "We're currently only able to send OTPs to phone numbers verified through us. Please provide your number on the contact form within 24 hrs it would be activated.";
       
       if (error.response) {
         const { status, data } = error.response;
@@ -647,7 +654,16 @@ const DisasterTrackingPopup = ({ isOpen, onClose, onSubmit }) => {
             {/* Submit Error */}
             {errors.submit && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="text-red-600 text-sm">{errors.submit}</p>
+                <p className="text-red-600 text-sm mb-3">{errors.submit}</p>
+                {errors.submit.includes("contact form") && (
+                  <button
+                    type="button"
+                    onClick={handleContactRedirect}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    📞 Go to Contact Page
+                  </button>
+                )}
               </div>
             )}
           </form>
